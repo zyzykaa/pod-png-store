@@ -3,7 +3,7 @@ import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 
 export const metadata: Metadata = {
-  title: 'PNGDrop — PNG Designs for Sublimation & DTF',
+  title: 'Tiklife — PNG Designs for Sublimation & DTF',
   description: 'Download high-quality PNG designs for sublimation, DTF, and screen printing. 300 DPI transparent backgrounds. Commercial license included.',
 }
 
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}>
             <div>
               <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--brand)', marginBottom: 8 }}>
-                PNG<span style={{ color: 'var(--brand-accent)' }}>Drop</span>
+                tik<span style={{ color: 'var(--brand-accent)' }}>life</span>
               </div>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                 High-quality PNG designs for sublimation, DTF, and screen printing. 300 DPI · Commercial license included.
@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <div style={{ textAlign: 'center', marginTop: 32, fontSize: 12, color: 'var(--text-muted)' }}>
-            © {new Date().getFullYear()} PNGDrop. All rights reserved.
+            © {new Date().getFullYear()} Tiklife. All rights reserved.
           </div>
         </footer>
       </body>

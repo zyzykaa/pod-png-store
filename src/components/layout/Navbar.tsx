@@ -43,7 +43,7 @@ export default function Navbar() {
           textDecoration: 'none',
           letterSpacing: '-0.04em',
         }}>
-          PNG<span style={{ color: 'var(--brand-accent)' }}>Drop</span>
+          tik<span style={{ color: 'var(--brand-accent)' }}>life</span>
         </Link>
 
         {/* Search bar */}

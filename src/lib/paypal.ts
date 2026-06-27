@@ -48,7 +48,7 @@ export async function createPayPalOrder(amount: number, orderId: string) {
         paypal: {
           experience_context: {
             payment_method_preference: 'IMMEDIATE_PAYMENT_REQUIRED',
-            brand_name: 'PNG Design Store',
+            brand_name: 'Tiklife',
             locale: 'en-US',
             landing_page: 'LOGIN',
             user_action: 'PAY_NOW',

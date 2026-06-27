@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props) {
 
   if (!product) return {}
   return {
-    title: `${product.title} | PNGDrop`,
+    title: `${product.title} | Tiklife`,
     description: product.description || '',
   }
 }
