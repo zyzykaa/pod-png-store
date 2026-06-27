@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     // ---- PREVIEW IMAGE (thêm watermark Tiklife tự động) ----
     if (type === 'preview') {
       const watermarked = await addWatermark(buffer)
-      const filePath = `${slug}-preview.jpg`
+      const filePath = `previews/${slug}-preview.jpg`
 
       const { error } = await supabaseAdmin.storage
         .from('previews')
