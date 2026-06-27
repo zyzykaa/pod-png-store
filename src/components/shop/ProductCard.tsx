@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getImageUrl } from '@/lib/image'
 import Image from 'next/image'
 import { Product } from '@/types'
 
@@ -18,7 +19,7 @@ export default function ProductCard({ product }: Props) {
         {/* Preview image */}
         <div style={{ position: 'relative', aspectRatio: '1', background: '#f5f5f7', overflow: 'hidden' }}>
           <img
-            src={product.preview_url.includes("supabase.co") ? `/api/image?url=${encodeURIComponent(product.preview_url)}` : product.preview_url}
+            src={getImageUrl(product.preview_url)}
             alt={product.title}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />

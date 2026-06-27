@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { getImageUrl } from '@/lib/image'
 import { supabaseAdmin } from '@/lib/supabase'
 import ProductCheckout from '@/components/shop/ProductCheckout'
 import Link from 'next/link'
@@ -11,14 +12,29 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params
   const { data: product } = await supabaseAdmin
     .from('products')
-    .select('title, description')
+    .select('title, description, preview_url, price')
     .eq('slug', slug)
     .single()
 
   if (!product) return {}
+
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://tiklife.shop'
+  const ogImage = product.preview_url || `${BASE_URL}/og-image.jpg`
+
   return {
     title: `${product.title} | Tiklife`,
-    description: product.description || '',
+    description: product.description || `Download ${product.title} — 300 DPI PNG, commercial license included. Instant digital download.`,
+    openGraph: {
+      title: product.title,
+      description: `$${product.price} · 300 DPI · Commercial License · Instant Download`,
+      images: [{ url: ogImage, width: 1200, height: 1200, alt: product.title }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.title,
+      images: [ogImage],
+    },
   }
 }
 
@@ -58,7 +74,7 @@ export default async function ProductPage({ params }: Props) {
             marginBottom: 16, position: 'relative', aspectRatio: '1',
           }}>
             <img
-              src={product.preview_url.includes("supabase.co") ? `/api/image?url=${encodeURIComponent(product.preview_url)}` : product.preview_url}
+              src={getImageUrl(product.preview_url)}
               alt={product.title}
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
