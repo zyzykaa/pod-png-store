@@ -447,9 +447,7 @@ export default function AdminPage() {
                     opacity: p.is_active ? 1 : 0.6,
                   }}>
                     <img
-                      src={p.preview_url.includes('supabase.co')
-                        ? `/api/image?url=${encodeURIComponent(p.preview_url)}`
-                        : p.preview_url}
+                      src={p.preview_url}
                       alt={p.title}
                       style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }}
                     />
