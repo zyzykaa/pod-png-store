@@ -58,7 +58,7 @@ export default async function ProductPage({ params }: Props) {
             marginBottom: 16, position: 'relative', aspectRatio: '1',
           }}>
             <img
-              src={product.preview_url}
+              src={product.preview_url.includes("supabase.co") ? `/api/image?url=${encodeURIComponent(product.preview_url)}` : product.preview_url}
               alt={product.title}
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
