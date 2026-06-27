@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     // ---- DESIGN FILE → upload gốc + tự tạo preview ----
     if (type === 'design') {
       // 1. Upload file gốc vào private bucket designs
-      const designPath = `designs/${slug}.${ext}`
+      const designPath = `${slug}.${ext}`
       const { error: dErr } = await supabaseAdmin.storage
         .from('designs')
         .upload(designPath, buffer, { contentType: file.type, upsert: true })
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
       if (isImage) {
         const watermarked = await addWatermark(buffer)
-        const previewPath = `previews/${slug}-preview.jpg`
+        const previewPath = `${slug}-preview.jpg`
 
         const { error: pErr } = await supabaseAdmin.storage
           .from('previews')
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     // ---- PREVIEW riêng (fallback nếu cần upload ảnh khác) ----
     if (type === 'preview') {
       const watermarked = await addWatermark(buffer)
-      const previewPath = `previews/${slug}-preview.jpg`
+      const previewPath = `${slug}-preview.jpg`
 
       const { error } = await supabaseAdmin.storage
         .from('previews')
