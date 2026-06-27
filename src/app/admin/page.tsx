@@ -62,7 +62,6 @@ export default function AdminPage() {
   const [form, setForm] = useState<FormState>(defaultForm)
   const [designFile, setDesignFile] = useState<File | null>(null)
   const [previewFile, setPreviewFile] = useState<File | null>(null)
-  const [mockupFiles, setMockupFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string[]>([])
   const [successMsg, setSuccessMsg] = useState('')
@@ -74,7 +73,6 @@ export default function AdminPage() {
 
   const designRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLInputElement>(null)
-  const mockupRef = useRef<HTMLInputElement>(null)
 
   // Auto-generate slug từ title
   function generateSlug(title: string) {
@@ -174,12 +172,6 @@ export default function AdminPage() {
       log('✅ Upload preview xong!')
 
       const mockupUrls: string[] = []
-      for (let i = 0; i < mockupFiles.length; i++) {
-        log(`⬆️ Đang upload mockup ${i + 1}/${mockupFiles.length}...`)
-        const url = await uploadFile(mockupFiles[i], 'mockup', form.slug)
-        mockupUrls.push(url)
-      }
-      if (mockupFiles.length > 0) log('✅ Upload mockups xong!')
 
       log('💾 Đang lưu vào database...')
       const res = await fetch('/api/admin/products', {
@@ -214,7 +206,6 @@ export default function AdminPage() {
       setForm(defaultForm)
       setDesignFile(null)
       setPreviewFile(null)
-      setMockupFiles([])
     } catch (err: any) {
       setErrorMsg('❌ Lỗi: ' + err.message)
     }
@@ -330,28 +321,7 @@ export default function AdminPage() {
                 }
               </div>
 
-              {/* Mockup images */}
-              <div style={{
-                background: 'white', borderRadius: 16, padding: 20,
-                border: '2px dashed var(--border)', cursor: 'pointer', textAlign: 'center',
-              }} onClick={() => mockupRef.current?.click()}>
-                <input ref={mockupRef} type="file" accept="image/*" multiple hidden
-                  onChange={e => e.target.files && setMockupFiles(Array.from(e.target.files))} />
-                <div style={{ fontSize: 32, marginBottom: 8 }}>👕</div>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Mockup (áo, cốc, tumbler...)</div>
-                {mockupFiles.length > 0
-                  ? <div style={{ fontSize: 13, color: '#16a34a' }}>✅ {mockupFiles.length} ảnh đã chọn</div>
-                  : <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Chọn nhiều ảnh cùng lúc (không bắt buộc)</div>
-                }
-                {mockupFiles.length > 0 && (
-                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {mockupFiles.map((f, i) => (
-                      <img key={i} src={URL.createObjectURL(f)} alt={`mockup-${i}`}
-                        style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />
-                    ))}
-                  </div>
-                )}
-              </div>
+
             </div>
 
             {/* RIGHT: Form thông tin */}
