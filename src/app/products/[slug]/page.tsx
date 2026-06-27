@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getImageUrl } from '@/lib/image'
+import { getImageUrl, getAbsoluteImageUrl } from '@/lib/image'
 import { supabaseAdmin } from '@/lib/supabase'
 import ProductCheckout from '@/components/shop/ProductCheckout'
 import Link from 'next/link'
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props) {
   if (!product) return {}
 
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://tiklife.shop'
-  const ogImage = product.preview_url || `${BASE_URL}/og-image.jpg`
+  const ogImage = getAbsoluteImageUrl(product.preview_url) || `${BASE_URL}/og-image.jpg`
 
   return {
     title: `${product.title} | Tiklife`,

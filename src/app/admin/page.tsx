@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { CATEGORIES } from '@/types'
+import { getImageUrl } from '@/lib/image'
 
 interface Product {
   id: string; slug: string; title: string; price: number
@@ -447,7 +448,7 @@ export default function AdminPage() {
                     opacity: p.is_active ? 1 : 0.6,
                   }}>
                     <img
-                      src={p.preview_url}
+                      src={getImageUrl(p.preview_url)}
                       alt={p.title}
                       style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }}
                     />
