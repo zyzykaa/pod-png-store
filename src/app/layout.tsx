@@ -1,0 +1,64 @@
+import type { Metadata } from 'next'
+import './globals.css'
+import Navbar from '@/components/layout/Navbar'
+
+export const metadata: Metadata = {
+  title: 'PNGDrop — PNG Designs for Sublimation & DTF',
+  description: 'Download high-quality PNG designs for sublimation, DTF, and screen printing. 300 DPI transparent backgrounds. Commercial license included.',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Navbar />
+        <main>{children}</main>
+        <footer style={{
+          borderTop: '1px solid var(--border)',
+          padding: '40px 24px',
+          marginTop: 80,
+          background: 'var(--bg-soft)',
+        }}>
+          <div className="container" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: 32,
+          }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--brand)', marginBottom: 8 }}>
+                PNG<span style={{ color: 'var(--brand-accent)' }}>Drop</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                High-quality PNG designs for sublimation, DTF, and screen printing. 300 DPI · Commercial license included.
+              </p>
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Shop</div>
+              {['All Designs', 'Western & Country', 'Christmas', 'Mama', 'Sports'].map(l => (
+                <div key={l} style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>{l}</div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Info</div>
+              {['License Info', 'FAQ', 'Contact Us', 'Refund Policy'].map(l => (
+                <div key={l} style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>{l}</div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>File details</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+                ✓ 300 DPI transparent PNG<br/>
+                ✓ Commercial / POD license<br/>
+                ✓ Instant digital download<br/>
+                ✓ Works with Printify, Printful
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 32, fontSize: 12, color: 'var(--text-muted)' }}>
+            © {new Date().getFullYear()} PNGDrop. All rights reserved.
+          </div>
+        </footer>
+      </body>
+    </html>
+  )
+}
