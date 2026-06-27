@@ -1,19 +1,13 @@
 /**
- * Trả URL ảnh qua proxy /api/image với encode đúng cách
- * Dùng cho <img> tag trong app
+ * Trả thẳng URL Supabase - browser load trực tiếp
+ * Bucket previews là public nên browser có thể load được
  */
 export function getImageUrl(url: string): string {
-  if (!url) return ''
-  if (url.includes('supabase.co')) {
-    // encodeURIComponent để URL không bị parse sai
-    return `/api/image?url=${encodeURIComponent(url)}`
-  }
-  return url
+  return url || ''
 }
 
 /**
- * Trả URL tuyệt đối của ảnh Supabase (KHÔNG qua proxy)
- * Dùng cho og:image, twitter:image — cần URL public absolute
+ * URL tuyệt đối cho og:image
  */
 export function getAbsoluteImageUrl(url: string): string {
   return url || ''
