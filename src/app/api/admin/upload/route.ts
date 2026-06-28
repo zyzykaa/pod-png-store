@@ -1,35 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { put } from '@vercel/blob'
+import sharp from 'sharp'
+
+// Tắt concurrency và SIMD để Sharp không cần SharedArrayBuffer trên Vercel
+sharp.concurrency(1)
+sharp.simd(false)
 
 function checkAuth(request: NextRequest) {
   return request.headers.get('x-admin-key') === process.env.ADMIN_SECRET_KEY
 }
 
-// Resize ảnh về 500px bằng Web API thuần - không dùng Sharp
-async function resizeImage(buffer: ArrayBuffer, mimeType: string): Promise<ArrayBuffer> {
-  // Dùng createImageBitmap + OffscreenCanvas (có trong Node 18+ / Vercel)
-  try {
-    const blob = new Blob([buffer], { type: mimeType })
-    const bitmap = await createImageBitmap(blob)
-    
-    const MAX = 500
-    let w = bitmap.width
-    let h = bitmap.height
-    if (w > h) { h = Math.round(h * MAX / w); w = MAX }
-    else { w = Math.round(w * MAX / h); h = MAX }
-    
-    const canvas = new OffscreenCanvas(w, h)
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(bitmap, 0, 0, w, h)
-    bitmap.close()
-    
-    const resizedBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 })
-    return resizedBlob.arrayBuffer()
-  } catch {
-    // Nếu không support OffscreenCanvas thì trả file gốc
-    return buffer
-  }
+async function createPreview(buffer: Buffer): Promise<Buffer> {
+  const resized = await sharp(buffer)
+    .resize({ width: 500, height: 500, fit: 'inside', withoutEnlargement: true })
+    .toBuffer()
+
+  const meta = await sharp(resized).metadata()
+  const W = meta.width || 500
+  const H = meta.height || 500
+  const fz = Math.round(W * 0.07)
+  const badge = Math.round(W * 0.05)
+
+  const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(${W/2},${H/2}) rotate(-30)">
+      <text font-family="Arial" font-weight="700" font-size="${fz}"
+        fill="rgba(255,255,255,0.25)" text-anchor="middle" dy="-${fz*1.2}" letter-spacing="3">TIKLIFE.SHOP</text>
+      <text font-family="Arial" font-weight="700" font-size="${fz}"
+        fill="rgba(255,255,255,0.25)" text-anchor="middle" dy="0" letter-spacing="3">TIKLIFE.SHOP</text>
+      <text font-family="Arial" font-weight="700" font-size="${fz}"
+        fill="rgba(255,255,255,0.25)" text-anchor="middle" dy="${fz*1.2}" letter-spacing="3">TIKLIFE.SHOP</text>
+    </g>
+    <rect x="${W-badge*6.5}" y="${H-badge*1.8}" width="${badge*6}" height="${badge*1.5}" rx="4" fill="rgba(233,69,96,0.85)"/>
+    <text font-family="Arial" font-weight="800" font-size="${badge}"
+      fill="white" x="${W-badge*3.5}" y="${H-badge*0.65}" text-anchor="middle">tiklife.shop</text>
+  </svg>`
+
+  return sharp(resized)
+    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .jpeg({ quality: 85 })
+    .toBuffer()
 }
 
 export async function POST(request: NextRequest) {
@@ -48,23 +58,24 @@ export async function POST(request: NextRequest) {
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase()
-    const originalBuffer = await file.arrayBuffer()
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
 
     if (type === 'design') {
       // 1. Lưu file gốc vào Supabase designs (private)
       const designPath = `${slug}.${ext}`
       const { error: dErr } = await supabaseAdmin.storage
         .from('designs')
-        .upload(designPath, originalBuffer, { contentType: file.type, upsert: true })
+        .upload(designPath, buffer, { contentType: file.type, upsert: true })
       if (dErr) throw new Error('Upload design thất bại: ' + dErr.message)
 
-      // 2. Resize 500px và upload lên Vercel Blob làm preview
+      // 2. Tạo preview 500px + watermark → upload Vercel Blob
       const isImage = ['png', 'jpg', 'jpeg', 'webp'].includes(ext || '')
       let previewUrl = ''
 
       if (isImage) {
-        const resized = await resizeImage(originalBuffer, file.type)
-        const blob = await put(`${slug}-preview.jpg`, resized, {
+        const preview = await createPreview(buffer)
+        const blob = await put(`previews/${slug}-preview.jpg`, preview, {
           access: 'public',
           contentType: 'image/jpeg',
         })

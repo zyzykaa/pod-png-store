@@ -3,12 +3,21 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { put } from '@vercel/blob'
 import sharp from 'sharp'
 
+// Tắt concurrency và SIMD để Sharp không cần SharedArrayBuffer trên Vercel
+sharp.concurrency(1)
+sharp.simd(false)
+
 function checkAuth(request: NextRequest) {
   return request.headers.get('x-admin-key') === process.env.ADMIN_SECRET_KEY
 }
 
-async function createProtectedPreview(buffer: Buffer): Promise<Buffer> {
-  // Resize về 500px
+// Headers bắt buộc để Sharp/SharedArrayBuffer hoạt động trên Vercel
+const SHARP_HEADERS = {
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+}
+
+async function createPreview(buffer: Buffer): Promise<Buffer> {
   const resized = await sharp(buffer)
     .resize({ width: 500, height: 500, fit: 'inside', withoutEnlargement: true })
     .toBuffer()
@@ -16,8 +25,6 @@ async function createProtectedPreview(buffer: Buffer): Promise<Buffer> {
   const meta = await sharp(resized).metadata()
   const W = meta.width || 500
   const H = meta.height || 500
-
-  // Watermark nhẹ - chỉ text "tiklife.shop" chéo để bảo vệ
   const fz = Math.round(W * 0.07)
   const badge = Math.round(W * 0.05)
 
@@ -37,7 +44,7 @@ async function createProtectedPreview(buffer: Buffer): Promise<Buffer> {
 
   return sharp(resized)
     .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-    .jpeg({ quality: 82 })
+    .jpeg({ quality: 85 })
     .toBuffer()
 }
 
@@ -51,7 +58,9 @@ export async function GET(request: NextRequest) {
     .select('id, slug, file_path')
     .eq('is_active', true)
 
-  if (!products?.length) return NextResponse.json({ error: 'No products' }, { status: 404 })
+  if (!products?.length) {
+    return NextResponse.json({ error: 'No products' }, { status: 404 }, )
+  }
 
   const results = []
 
@@ -62,19 +71,21 @@ export async function GET(request: NextRequest) {
         .from('designs').download(cleanPath)
 
       if (dlErr || !fileData) {
-        results.push({ slug: product.slug, status: 'FAIL download: ' + dlErr?.message })
+        results.push({ slug: product.slug, status: 'FAIL: ' + (dlErr?.message || 'no data') })
         continue
       }
 
       const buffer = Buffer.from(await fileData.arrayBuffer())
-      const preview = await createProtectedPreview(buffer)
+      const preview = await createPreview(buffer)
 
-      const blob = await put(`${product.slug}-preview.jpg`, preview, {
-        access: 'public', contentType: 'image/jpeg',
+      const blob = await put(`previews/${product.slug}-preview.jpg`, preview, {
+        access: 'public',
+        contentType: 'image/jpeg',
       })
 
       await supabaseAdmin.from('products')
-        .update({ preview_url: blob.url }).eq('slug', product.slug)
+        .update({ preview_url: blob.url })
+        .eq('slug', product.slug)
 
       results.push({ slug: product.slug, status: 'OK', url: blob.url })
     } catch (err: any) {
@@ -82,7 +93,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ results })
+  // Trả về với SHARP_HEADERS để SharedArrayBuffer hoạt động
+  return NextResponse.json({ results }, { headers: SHARP_HEADERS })
 }
 
 export async function POST(request: NextRequest) {
@@ -106,16 +118,17 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await fileData.arrayBuffer())
-    const preview = await createProtectedPreview(buffer)
+    const preview = await createPreview(buffer)
 
-    const blob = await put(`${product.slug}-preview.jpg`, preview, {
-      access: 'public', contentType: 'image/jpeg',
+    const blob = await put(`previews/${product.slug}-preview.jpg`, preview, {
+      access: 'public',
+      contentType: 'image/jpeg',
     })
 
     await supabaseAdmin.from('products')
       .update({ preview_url: blob.url }).eq('slug', product.slug)
 
-    return NextResponse.json({ success: true, preview_url: blob.url })
+    return NextResponse.json({ success: true, preview_url: blob.url }, { headers: SHARP_HEADERS })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
