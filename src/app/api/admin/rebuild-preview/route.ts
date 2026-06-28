@@ -6,6 +6,29 @@ function checkAuth(request: NextRequest) {
   return request.headers.get('x-admin-key') === process.env.ADMIN_SECRET_KEY
 }
 
+async function resizeImage(buffer: ArrayBuffer, mimeType: string): Promise<ArrayBuffer> {
+  try {
+    const blob = new Blob([buffer], { type: mimeType })
+    const bitmap = await createImageBitmap(blob)
+    
+    const MAX = 500
+    let w = bitmap.width
+    let h = bitmap.height
+    if (w > h) { h = Math.round(h * MAX / w); w = MAX }
+    else { w = Math.round(w * MAX / h); h = MAX }
+    
+    const canvas = new OffscreenCanvas(w, h)
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    bitmap.close()
+    
+    const resizedBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 })
+    return resizedBlob.arrayBuffer()
+  } catch {
+    return buffer // fallback: trả file gốc nếu không resize được
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -24,9 +47,8 @@ export async function GET(request: NextRequest) {
 
   for (const product of products) {
     try {
-      // Bỏ prefix "designs/" vì bucket đã là "designs"
       const cleanPath = product.file_path.replace(/^designs\//, '')
-
+      
       const { data: fileData, error: dlErr } = await supabaseAdmin.storage
         .from('designs')
         .download(cleanPath)
@@ -37,12 +59,12 @@ export async function GET(request: NextRequest) {
       }
 
       const arrayBuffer = await fileData.arrayBuffer()
-      const ext = cleanPath.split('.').pop() || 'png'
+      // Resize 500px
+      const resized = await resizeImage(arrayBuffer, 'image/png')
 
-      // Upload thẳng lên Vercel Blob - không Sharp, không watermark
-      const blob = await put(`${product.slug}-preview.${ext}`, arrayBuffer, {
+      const blob = await put(`${product.slug}-preview.jpg`, resized, {
         access: 'public',
-        contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+        contentType: 'image/jpeg',
       })
 
       await supabaseAdmin
@@ -74,7 +96,7 @@ export async function POST(request: NextRequest) {
       .eq('slug', slug)
       .single()
 
-    if (!product) return NextResponse.json({ error: 'Không tìm thấy product' }, { status: 404 })
+    if (!product) return NextResponse.json({ error: 'Không tìm thấy' }, { status: 404 })
 
     const cleanPath = product.file_path.replace(/^designs\//, '')
     const { data: fileData, error: dlErr } = await supabaseAdmin.storage
@@ -86,11 +108,11 @@ export async function POST(request: NextRequest) {
     }
 
     const arrayBuffer = await fileData.arrayBuffer()
-    const ext = cleanPath.split('.').pop() || 'png'
+    const resized = await resizeImage(arrayBuffer, 'image/png')
 
-    const blob = await put(`${product.slug}-preview.${ext}`, arrayBuffer, {
+    const blob = await put(`${product.slug}-preview.jpg`, resized, {
       access: 'public',
-      contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+      contentType: 'image/jpeg',
     })
 
     await supabaseAdmin
