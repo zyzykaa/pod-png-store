@@ -21,7 +21,9 @@ export default function ProductCard({ product }: Props) {
           <img
             src={getImageUrl(product.preview_url)}
             alt={product.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
           />
 
           {/* Badges */}

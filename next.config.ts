@@ -11,8 +11,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Chỉ apply cho API routes để Sharp hoạt động
-        source: '/api/admin/:path*',
+        // COOP/COEP cho toàn bộ site để Sharp hoạt động
+        source: '/(.*)',
         headers: [
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },

@@ -67,24 +67,42 @@ export default async function ProductPage({ params }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 48, alignItems: 'start' }}>
         {/* Left: Images */}
         <div>
-          {/* Main preview */}
-          <div style={{
-            background: '#f5f5f7', borderRadius: 16, overflow: 'hidden',
-            marginBottom: 16, position: 'relative', aspectRatio: '1',
-          }}>
+          {/* Main preview - protected */}
+          <div
+            style={{
+              background: '#f5f5f7', borderRadius: 16, overflow: 'hidden',
+              marginBottom: 16, position: 'relative', aspectRatio: '1',
+              userSelect: 'none',
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+            onDragStart={(e) => e.preventDefault()}
+          >
             <img
               src={getImageUrl(product.preview_url)}
               alt={product.title}
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              draggable={false}
+              style={{
+                width: '100%', height: '100%', objectFit: 'contain',
+                pointerEvents: 'none', userSelect: 'none',
+              }}
             />
-            {/* Watermark overlay */}
+            {/* Overlay chặn chuột phải */}
+            <div
+              style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+              onContextMenu={(e) => e.preventDefault()}
+            />
+            {/* Watermark text */}
             <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%) rotate(-30deg)',
-              fontSize: 28, fontWeight: 900, color: 'rgba(255,255,255,0.3)',
-              letterSpacing: 4, pointerEvents: 'none', userSelect: 'none',
+              position: 'absolute', inset: 0, zIndex: 2,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: 'none',
             }}>
-              PREVIEW
+              <span style={{
+                transform: 'rotate(-30deg)', display: 'block',
+                fontSize: 20, fontWeight: 900, letterSpacing: 6,
+                color: 'rgba(255,255,255,0.2)', userSelect: 'none',
+                whiteSpace: 'nowrap',
+              }}>TIKLIFE.SHOP</span>
             </div>
           </div>
 
