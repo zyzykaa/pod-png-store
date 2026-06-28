@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { verifyPayPalWebhook } from '@/lib/paypal'
 
-// Phải đọc raw body để verify signature
-export const config = { api: { bodyParser: false } }
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
