@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import ProductCheckout from '@/components/shop/ProductCheckout'
 import ProductImage from '@/components/shop/ProductImage'
