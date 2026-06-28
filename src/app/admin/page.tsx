@@ -430,10 +430,24 @@ export default function AdminPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontSize: 20 }}>Tất cả Products ({products.length})</h2>
-              <button onClick={loadProducts} style={{
-                padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)',
-                background: 'white', cursor: 'pointer', fontSize: 13,
-              }}>🔄 Refresh</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={async () => {
+                  if (!confirm('Rebuild preview cho TẤT CẢ products? Mất ~30 giây.')) return
+                  const res = await fetch('/api/admin/rebuild-preview', { headers: { 'x-admin-key': adminKey } })
+                  const data = await res.json()
+                  const msg = data.results?.map((r: any) => r.slug + ': ' + r.status).join('\n') || JSON.stringify(data)
+                  alert(msg)
+                  loadProducts()
+                }} style={{
+                  padding: '8px 16px', borderRadius: 8, border: 'none',
+                  background: 'var(--brand-accent)', color: 'white',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                }}>🖼️ Rebuild All Previews</button>
+                <button onClick={loadProducts} style={{
+                  padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)',
+                  background: 'white', cursor: 'pointer', fontSize: 13,
+                }}>🔄 Refresh</button>
+              </div>
             </div>
 
             {loadingProducts ? (
