@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { put } from '@vercel/blob'
 import sharp from 'sharp'
 
 function checkAuth(request: NextRequest) {
@@ -85,17 +86,8 @@ export async function POST(request: NextRequest) {
 
     // Upload preview vào root của bucket previews (không subfolder)
     const previewPath = `${slug}-preview.jpg`
-    const { error: upErr } = await supabaseAdmin.storage
-      .from('previews')
-      .upload(previewPath, watermarked, { contentType: 'image/jpeg', upsert: true })
-
-    if (upErr) {
-      return NextResponse.json({ error: 'Upload preview thất bại: ' + upErr.message }, { status: 500 })
-    }
-
-    // Lấy public URL
-    const { data: urlData } = supabaseAdmin.storage.from('previews').getPublicUrl(previewPath)
-    const previewUrl = urlData.publicUrl
+    const blob = await put(previewPath, watermarked, { access: 'public', contentType: 'image/jpeg' })
+    const previewUrl = blob.url
 
     // Update DB
     await supabaseAdmin
@@ -145,25 +137,17 @@ export async function GET(request: NextRequest) {
       const buffer = Buffer.from(await fileData.arrayBuffer())
       const watermarked = await addWatermark(buffer)
 
-      // Upload
+      // Upload lên Vercel Blob (CDN toàn cầu, không RLS)
       const previewPath = `${product.slug}-preview.jpg`
-      const { error: upErr } = await supabaseAdmin.storage
-        .from('previews')
-        .upload(previewPath, watermarked, { contentType: 'image/jpeg', upsert: true })
-
-      if (upErr) {
-        results.push({ slug: product.slug, status: 'FAIL upload: ' + upErr.message })
-        continue
-      }
+      const blob = await put(previewPath, watermarked, { access: 'public', contentType: 'image/jpeg' })
 
       // Update DB
-      const { data: urlData } = supabaseAdmin.storage.from('previews').getPublicUrl(previewPath)
       await supabaseAdmin
         .from('products')
-        .update({ preview_url: urlData.publicUrl })
+        .update({ preview_url: blob.url })
         .eq('slug', product.slug)
 
-      results.push({ slug: product.slug, status: 'OK', url: urlData.publicUrl })
+      results.push({ slug: product.slug, status: 'OK', url: blob.url })
     } catch (err: any) {
       results.push({ slug: product.slug, status: 'ERROR: ' + err.message })
     }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { put } from '@vercel/blob'
 import sharp from 'sharp'
 
 function checkAuth(request: NextRequest) {
@@ -88,13 +89,11 @@ export async function POST(request: NextRequest) {
         const watermarked = await addWatermark(buffer)
         const previewPath = `${slug}-preview.jpg`
 
-        const { error: pErr } = await supabaseAdmin.storage
-          .from('previews')
-          .upload(previewPath, watermarked, { contentType: 'image/jpeg', upsert: true })
-        if (pErr) throw pErr
-
-        const { data } = supabaseAdmin.storage.from('previews').getPublicUrl(previewPath)
-        previewUrl = data.publicUrl
+        const blob = await put(previewPath, watermarked, {
+          access: 'public',
+          contentType: 'image/jpeg',
+        })
+        previewUrl = blob.url
       }
 
       return NextResponse.json({
