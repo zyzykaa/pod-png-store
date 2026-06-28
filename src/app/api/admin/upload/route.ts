@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { put } from '@vercel/blob'
 
 function checkAuth(request: NextRequest) {
   return request.headers.get('x-admin-key') === process.env.ADMIN_SECRET_KEY
@@ -14,18 +13,18 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const type = formData.get('type') as string // 'design' | 'preview'
+    const type = formData.get('type') as string
     const slug = formData.get('slug') as string
 
     if (!file || !type || !slug) {
       return NextResponse.json({ error: 'Missing file, type or slug' }, { status: 400 })
     }
 
-    const ext = file.name.split('.').pop()?.toLowerCase()
     const buffer = Buffer.from(await file.arrayBuffer())
 
     if (type === 'design') {
       // Luu file goc vao Supabase designs (private)
+      const ext = file.name.split('.').pop()?.toLowerCase()
       const designPath = `${slug}.${ext}`
       const { error } = await supabaseAdmin.storage
         .from('designs')
@@ -35,12 +34,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (type === 'preview') {
-      // Upload preview (da xu ly watermark o client) len Vercel Blob
-      const blob = await put(`previews/${slug}-preview.jpg`, buffer, {
-        access: 'public',
-        contentType: 'image/jpeg',
-      })
-      return NextResponse.json({ data: { preview_url: blob.url } })
+      // Upload preview JPEG len Supabase previews (public bucket)
+      const previewPath = `${slug}-preview.jpg`
+      const { error } = await supabaseAdmin.storage
+        .from('previews')
+        .upload(previewPath, buffer, { contentType: 'image/jpeg', upsert: true })
+      if (error) throw new Error(error.message)
+
+      const { data } = supabaseAdmin.storage
+        .from('previews')
+        .getPublicUrl(previewPath)
+
+      return NextResponse.json({ data: { preview_url: data.publicUrl } })
     }
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
