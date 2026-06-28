@@ -6,7 +6,6 @@ function checkAuth(request: NextRequest) {
   return request.headers.get('x-admin-key') === process.env.ADMIN_SECRET_KEY
 }
 
-// GET: rebuild tất cả products
 export async function GET(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,9 +24,9 @@ export async function GET(request: NextRequest) {
 
   for (const product of products) {
     try {
-      // Download PNG gốc - bỏ prefix "designs/" vì bucket đã là "designs"
-      const cleanPath = product.file_path.replace('designs/', '')
-      
+      // Bỏ prefix "designs/" vì bucket đã là "designs"
+      const cleanPath = product.file_path.replace(/^designs\//, '')
+
       const { data: fileData, error: dlErr } = await supabaseAdmin.storage
         .from('designs')
         .download(cleanPath)
@@ -37,14 +36,15 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      // Upload thẳng PNG gốc lên Vercel Blob - không dùng Sharp
       const arrayBuffer = await fileData.arrayBuffer()
-      const blob = await put(`${product.slug}-preview.png`, arrayBuffer, {
+      const ext = cleanPath.split('.').pop() || 'png'
+
+      // Upload thẳng lên Vercel Blob - không Sharp, không watermark
+      const blob = await put(`${product.slug}-preview.${ext}`, arrayBuffer, {
         access: 'public',
-        contentType: 'image/png',
+        contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
       })
 
-      // Update DB
       await supabaseAdmin
         .from('products')
         .update({ preview_url: blob.url })
@@ -59,7 +59,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ results })
 }
 
-// POST: rebuild 1 product
 export async function POST(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -77,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     if (!product) return NextResponse.json({ error: 'Không tìm thấy product' }, { status: 404 })
 
-    const cleanPath = product.file_path.replace('designs/', '')
+    const cleanPath = product.file_path.replace(/^designs\//, '')
     const { data: fileData, error: dlErr } = await supabaseAdmin.storage
       .from('designs')
       .download(cleanPath)
@@ -87,9 +86,11 @@ export async function POST(request: NextRequest) {
     }
 
     const arrayBuffer = await fileData.arrayBuffer()
-    const blob = await put(`${product.slug}-preview.png`, arrayBuffer, {
+    const ext = cleanPath.split('.').pop() || 'png'
+
+    const blob = await put(`${product.slug}-preview.${ext}`, arrayBuffer, {
       access: 'public',
-      contentType: 'image/png',
+      contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
     })
 
     await supabaseAdmin
