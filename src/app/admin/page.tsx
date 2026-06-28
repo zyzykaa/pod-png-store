@@ -124,9 +124,9 @@ export default function AdminPage() {
   const designRef = useRef<HTMLInputElement>(null)
 
   // Bulk upload state
-  const [bulkUrls, setBulkUrls] = useState('')
-  const [bulkCategory, setBulkCategory] = useState('miscellaneous')
-  const [bulkPrice, setBulkPrice] = useState('3.99')
+  const [bulkProducts, setBulkProducts] = useState([
+    { title: '', urls: '', category: 'miscellaneous', price: '3.99' }
+  ])
   const [bulkLoading, setBulkLoading] = useState(false)
   const [bulkResults, setBulkResults] = useState<any[]>([])
 
@@ -399,87 +399,104 @@ export default function AdminPage() {
 
         {/* BULK UPLOAD TAB */}
         {tab === 'bulk' && (
-          <div style={{ background: 'white', borderRadius: 16, padding: 28 }}>
-            <h2 style={{ fontSize: 18, marginBottom: 6 }}>Bulk Upload tu URL</h2>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
-              Dan danh sach link PNG (moi link 1 dong). Server se tu download, luu storage va them vao shop.
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Category</label>
-                <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}
-                  style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, background: 'white' }}>
-                  {CATEGORIES.slice(1).map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Gia ban ($)</label>
-                <input value={bulkPrice} onChange={e => setBulkPrice(e.target.value)} type="number" step="0.01"
-                  style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' as const }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Gia goc ($)</label>
-                <input value="9.99" readOnly
-                  style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, background: '#f9f9f9', boxSizing: 'border-box' as const }} />
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: 20 }}>Upload nhieu san pham tu URL</h2>
+              <button onClick={() => setBulkProducts(p => [...p, { title: '', urls: '', category: 'miscellaneous', price: '3.99' }])}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid var(--brand)', background: 'white', color: 'var(--brand)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                + Them san pham
+              </button>
             </div>
 
-            <textarea
-              value={bulkUrls}
-              onChange={e => setBulkUrls(e.target.value)}
-              placeholder={'https://example.com/design1.png\nhttps://example.com/design2.png\nhttps://example.com/design3.png'}
-              rows={10}
-              style={{ width: '100%', padding: '12px', border: '1.5px solid #e5e5e5', borderRadius: 10, fontSize: 13, fontFamily: 'monospace', resize: 'vertical' as const, boxSizing: 'border-box' as const, marginBottom: 16 }}
-            />
+            {bulkProducts.map((bp, idx) => (
+              <div key={idx} style={{ background: 'white', borderRadius: 16, padding: 22, border: '1.5px solid #e5e5e5' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#888' }}>San pham #{idx + 1}</span>
+                  {bulkProducts.length > 1 && (
+                    <button onClick={() => setBulkProducts(p => p.filter((_, i) => i !== idx))}
+                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 18 }}>×</button>
+                  )}
+                </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <button
-                disabled={bulkLoading || !bulkUrls.trim()}
-                onClick={async () => {
-                  const urls = bulkUrls.split('\n').map(u => u.trim()).filter(u => u.startsWith('http'))
-                  if (!urls.length) return
-                  setBulkLoading(true)
-                  setBulkResults([])
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Ten san pham *</label>
+                    <input value={bp.title}
+                      onChange={e => setBulkProducts(p => p.map((x, i) => i === idx ? { ...x, title: e.target.value } : x))}
+                      placeholder="Howdy Western PNG Design"
+                      style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' as const }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Category</label>
+                    <select value={bp.category}
+                      onChange={e => setBulkProducts(p => p.map((x, i) => i === idx ? { ...x, category: e.target.value } : x))}
+                      style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, background: 'white', boxSizing: 'border-box' as const }}>
+                      {CATEGORIES.slice(1).map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Gia ($)</label>
+                    <input value={bp.price} type="number" step="0.01"
+                      onChange={e => setBulkProducts(p => p.map((x, i) => i === idx ? { ...x, price: e.target.value } : x))}
+                      style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' as const }} />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>
+                    Links PNG (moi dong 1 link — dark version, light version, v.v.)
+                  </label>
+                  <textarea value={bp.urls}
+                    onChange={e => setBulkProducts(p => p.map((x, i) => i === idx ? { ...x, urls: e.target.value } : x))}
+                    placeholder={'https://example.com/design-dark.png\nhttps://example.com/design-light.png'}
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 12, fontFamily: 'monospace', resize: 'vertical' as const, boxSizing: 'border-box' as const }} />
+                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>
+                    {bp.urls.split('\n').filter(u => u.trim().startsWith('http')).length} links — link dau tien se dung lam anh preview
+                  </div>
+                </div>
+
+                {bulkResults[idx] && (
+                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: bulkResults[idx].status === 'OK' ? '#d1fae5' : '#fee2e2', fontSize: 12, color: bulkResults[idx].status === 'OK' ? '#065f46' : '#991b1b' }}>
+                    {bulkResults[idx].status === 'OK' ? '✅ Da them vao shop!' : '❌ ' + bulkResults[idx].error}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              disabled={bulkLoading}
+              onClick={async () => {
+                setBulkLoading(true)
+                setBulkResults([])
+                const newResults: any[] = []
+
+                for (const bp of bulkProducts) {
+                  if (!bp.title || !bp.urls.trim()) {
+                    newResults.push({ status: 'ERROR', error: 'Thieu ten hoac URL' })
+                    continue
+                  }
+                  const urls = bp.urls.split('\n').map((u: string) => u.trim()).filter((u: string) => u.startsWith('http'))
+                  if (!urls.length) { newResults.push({ status: 'ERROR', error: 'Khong co URL hop le' }); continue }
+
                   try {
                     const res = await fetch('/api/admin/bulk-upload', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
-                      body: JSON.stringify({ urls, category: bulkCategory, price: bulkPrice }),
+                      body: JSON.stringify({ title: bp.title, urls, category: bp.category, price: bp.price }),
                     })
                     const data = await res.json()
-                    setBulkResults(data.results || [])
+                    newResults.push(data.error ? { status: 'ERROR', error: data.error } : { status: 'OK' })
                   } catch(e: any) {
-                    setBulkResults([{ url: 'error', status: 'ERROR', error: e.message }])
+                    newResults.push({ status: 'ERROR', error: e.message })
                   }
-                  setBulkLoading(false)
-                }}
-                style={{ height: 48, padding: '0 32px', background: bulkLoading ? '#ccc' : 'var(--brand)', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: bulkLoading ? 'not-allowed' : 'pointer' }}>
-                {bulkLoading ? 'Dang upload...' : `Upload ${bulkUrls.split('\n').filter(u => u.trim().startsWith('http')).length} files`}
-              </button>
-              {bulkResults.length > 0 && (
-                <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
-                  {bulkResults.filter(r => r.status === 'OK').length}/{bulkResults.length} thanh cong
-                </span>
-              )}
-            </div>
-
-            {bulkResults.length > 0 && (
-              <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e5e5', borderRadius: 10, padding: 12 }}>
-                {bulkResults.map((r, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f5f5f5', fontSize: 12 }}>
-                    <span style={{ fontSize: 16 }}>{r.status === 'OK' ? '✅' : '❌'}</span>
-                    <span style={{ color: '#888', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {r.url?.split('/').pop()}
-                    </span>
-                    {r.status === 'OK'
-                      ? <span style={{ color: '#16a34a', fontWeight: 600 }}>{r.title}</span>
-                      : <span style={{ color: '#dc2626' }}>{r.error}</span>
-                    }
-                  </div>
-                ))}
-              </div>
-            )}
+                }
+                setBulkResults(newResults)
+                setBulkLoading(false)
+              }}
+              style={{ height: 54, background: bulkLoading ? '#ccc' : 'var(--brand-accent)', color: 'white', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: bulkLoading ? 'not-allowed' : 'pointer' }}>
+              {bulkLoading ? 'Dang xu ly...' : `Upload ${bulkProducts.length} san pham`}
+            </button>
           </div>
         )}
 

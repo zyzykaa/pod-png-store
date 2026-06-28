@@ -7,7 +7,6 @@ function checkAuth(request: NextRequest) {
 
 function slugify(text: string) {
   return text.toLowerCase()
-    .replace(/\.[^/.]+$/, '')
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
@@ -15,57 +14,79 @@ function slugify(text: string) {
     + '-' + Math.random().toString(36).slice(2, 7)
 }
 
+// POST: 1 san pham voi nhieu URLs (dark/light variants)
 export async function POST(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { urls, category = 'miscellaneous', price = '3.99', compare_price = '9.99' } = await request.json()
-  if (!urls?.length) return NextResponse.json({ error: 'Can it nhat 1 URL' }, { status: 400 })
+  const { title, urls, category = 'miscellaneous', price = '3.99', compare_price = '9.99' } = await request.json()
 
-  const results = []
+  if (!title || !urls?.length) {
+    return NextResponse.json({ error: 'Can title va it nhat 1 URL' }, { status: 400 })
+  }
 
-  for (const url of urls) {
+  const slug = slugify(title)
+  const uploadedFiles: string[] = []
+  let previewUrl = ''
+
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i]
     try {
       const res = await fetch(url)
-      if (!res.ok) { results.push({ url, status: 'FAIL', error: `HTTP ${res.status}` }); continue }
+      if (!res.ok) continue
 
       const contentType = res.headers.get('content-type') || 'image/png'
       const buffer = Buffer.from(await res.arrayBuffer())
-      const filename = new URL(url).pathname.split('/').pop() || 'design.png'
-      const ext = filename.split('.').pop()?.toLowerCase() || 'png'
-      const slug = slugify(filename)
-      const title = filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+      const ext = url.split('?')[0].split('.').pop()?.toLowerCase() || 'png'
 
-      // Upload design (private)
-      const designPath = `${slug}.${ext}`
-      const { error: upErr } = await supabaseAdmin.storage
-        .from('designs').upload(designPath, buffer, { contentType, upsert: true })
-      if (upErr) { results.push({ url, status: 'FAIL', error: upErr.message }); continue }
+      // Upload file vao designs (private) - dark/light dung suffix
+      const suffix = urls.length > 1 ? `-v${i + 1}` : ''
+      const designPath = `${slug}${suffix}.${ext}`
 
-      // Upload preview (public)
-      const previewPath = `${slug}-preview.${ext}`
-      await supabaseAdmin.storage.from('previews')
-        .upload(previewPath, buffer, { contentType, upsert: true })
-      const { data: urlData } = supabaseAdmin.storage.from('previews').getPublicUrl(previewPath)
+      const { error } = await supabaseAdmin.storage
+        .from('designs')
+        .upload(designPath, buffer, { contentType, upsert: true })
 
-      // Luu DB
-      const { error: dbErr } = await supabaseAdmin.from('products').insert({
-        slug, title, description: '',
-        price: parseFloat(price), compare_price: parseFloat(compare_price),
-        category, tags: [], file_path: designPath,
-        preview_url: urlData.publicUrl, mockup_urls: [],
-        file_info: { dpi: 300, format: 'PNG', size: '', includes: ['PNG transparent'] },
-        is_active: true, is_featured: false, download_count: 0,
-      })
-      if (dbErr) { results.push({ url, status: 'FAIL', error: dbErr.message }); continue }
+      if (!error) uploadedFiles.push(designPath)
 
-      results.push({ url, status: 'OK', slug, title })
-    } catch (err: any) {
-      results.push({ url, status: 'ERROR', error: err.message })
+      // File dau tien = preview
+      if (i === 0 && !error) {
+        const previewPath = `${slug}-preview.${ext}`
+        await supabaseAdmin.storage.from('previews')
+          .upload(previewPath, buffer, { contentType, upsert: true })
+        const { data } = supabaseAdmin.storage.from('previews').getPublicUrl(previewPath)
+        previewUrl = data.publicUrl
+      }
+    } catch (e) {
+      continue
     }
   }
 
-  const ok = results.filter(r => r.status === 'OK').length
-  return NextResponse.json({ results, summary: `${ok}/${urls.length} thanh cong` })
+  if (!uploadedFiles.length) {
+    return NextResponse.json({ error: 'Khong download duoc file nao' }, { status: 400 })
+  }
+
+  // Luu vao DB - file_path la file dau tien, cac file con lai luu vao tags
+  const { error: dbErr } = await supabaseAdmin.from('products').insert({
+    slug, title,
+    description: '',
+    price: parseFloat(price),
+    compare_price: parseFloat(compare_price),
+    category, tags: [],
+    file_path: uploadedFiles[0],   // file chinh de download
+    preview_url: previewUrl,
+    mockup_urls: [],
+    file_info: {
+      dpi: 300, format: 'PNG', size: '',
+      includes: uploadedFiles.map((f, i) => i === 0 ? 'PNG (main)' : `PNG variant ${i + 1}`),
+    },
+    is_active: true,
+    is_featured: false,
+    download_count: 0,
+  })
+
+  if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 })
+
+  return NextResponse.json({ success: true, slug, files: uploadedFiles.length })
 }
