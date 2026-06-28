@@ -6,7 +6,7 @@ const PAYPAL_BASE_URL = process.env.PAYPAL_MODE === 'live'
 
 // Lấy access token từ PayPal
 async function getPayPalAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID!
+  const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!
   const clientSecret = process.env.PAYPAL_CLIENT_SECRET!
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
 
