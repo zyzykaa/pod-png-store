@@ -1,52 +1,47 @@
 import { notFound } from 'next/navigation'
-import { getImageUrl, getAbsoluteImageUrl } from '@/lib/image'
-import { supabaseAdmin } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import ProductCheckout from '@/components/shop/ProductCheckout'
+import ProductImage from '@/components/shop/ProductImage'
 import Link from 'next/link'
 
 interface Props {
   params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({ params }: Props) {
-  const { slug } = await params
-  const { data: product } = await supabaseAdmin
-    .from('products')
-    .select('title, description, preview_url, price')
-    .eq('slug', slug)
-    .single()
-
-  if (!product) return {}
-
-  const ogImage = product.preview_url || 'https://tiklife.shop/og-image.jpg'
-
-  return {
-    title: `${product.title} | Tiklife`,
-    description: product.description || `Download ${product.title} — 300 DPI PNG, commercial license included. Instant digital download.`,
-    openGraph: {
-      title: product.title,
-      description: `$${product.price} · 300 DPI · Commercial License · Instant Download`,
-      images: [{ url: ogImage, width: 1200, height: 1200, alt: product.title }],
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: product.title,
-      images: [ogImage],
-    },
-  }
-}
-
-export default async function ProductPage({ params }: Props) {
-  const { slug } = await params
-
-  const { data: product } = await supabaseAdmin
+async function getProduct(slug: string) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const { data } = await supabase
     .from('products')
     .select('*')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
+  return data
+}
 
+export async function generateMetadata({ params }: Props) {
+  const { slug } = await params
+  const product = await getProduct(slug)
+  if (!product) return {}
+  const ogImage = product.preview_url || 'https://tiklife.shop/og-image.jpg'
+  return {
+    title: `${product.title} | Tiklife`,
+    description: product.description || `Download ${product.title} — 300 DPI PNG, commercial license included.`,
+    openGraph: {
+      title: product.title,
+      description: `$${product.price} · 300 DPI · Commercial License · Instant Download`,
+      images: [{ url: ogImage, width: 1200, height: 1200, alt: product.title }],
+    },
+    twitter: { card: 'summary_large_image', title: product.title, images: [ogImage] },
+  }
+}
+
+export default async function ProductPage({ params }: Props) {
+  const { slug } = await params
+  const product = await getProduct(slug)
   if (!product) notFound()
 
   return (
@@ -65,100 +60,48 @@ export default async function ProductPage({ params }: Props) {
       </nav>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 48, alignItems: 'start' }}>
-        {/* Left: Images */}
+        {/* Left: Images - client component để dùng event handlers */}
         <div>
-          {/* Main preview - protected */}
-          <div
-            style={{
-              background: '#f5f5f7', borderRadius: 16, overflow: 'hidden',
-              marginBottom: 16, position: 'relative', aspectRatio: '1',
-              userSelect: 'none',
-            }}
-            onContextMenu={(e) => e.preventDefault()}
-            onDragStart={(e) => e.preventDefault()}
-          >
-            <img
-              src={getImageUrl(product.preview_url)}
-              alt={product.title}
-              draggable={false}
-              style={{
-                width: '100%', height: '100%', objectFit: 'contain',
-                pointerEvents: 'none', userSelect: 'none',
-              }}
-            />
-            {/* Overlay chặn chuột phải */}
-            <div
-              style={{ position: 'absolute', inset: 0, zIndex: 1 }}
-              onContextMenu={(e) => e.preventDefault()}
-            />
-            {/* Watermark text */}
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 2,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              pointerEvents: 'none',
-            }}>
-              <span style={{
-                transform: 'rotate(-30deg)', display: 'block',
-                fontSize: 20, fontWeight: 900, letterSpacing: 6,
-                color: 'rgba(255,255,255,0.2)', userSelect: 'none',
-                whiteSpace: 'nowrap',
-              }}>TIKLIFE.SHOP</span>
-            </div>
-          </div>
+          <ProductImage previewUrl={product.preview_url} title={product.title} />
 
-          {/* Mockup images */}
+          {/* Mockups */}
           {product.mockup_urls?.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
               {product.mockup_urls.map((url: string, i: number) => (
-                <div key={i} style={{
-                  background: '#f5f5f7', borderRadius: 10,
-                  overflow: 'hidden', aspectRatio: '1',
-                }}>
-                  <img src={url} alt={`Mockup ${i + 1}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div key={i} style={{ background: '#f5f5f7', borderRadius: 10, overflow: 'hidden', aspectRatio: '1' }}>
+                  <img src={url} alt={`Mockup ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               ))}
             </div>
           )}
 
           {/* Description */}
-          <div style={{ marginTop: 32 }}>
-            <h2 style={{ fontSize: 20, marginBottom: 12 }}>About this design</h2>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.7, fontSize: 15 }}>
-              {product.description}
-            </p>
-          </div>
+          {product.description && (
+            <div style={{ marginTop: 32 }}>
+              <h2 style={{ fontSize: 20, marginBottom: 12 }}>About this design</h2>
+              <p style={{ color: 'var(--text-muted)', lineHeight: 1.7, fontSize: 15 }}>{product.description}</p>
+            </div>
+          )}
 
           {/* Tags */}
-          <div style={{ marginTop: 24, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {product.tags.map((tag: string) => (
-              <Link
-                key={tag}
-                href={`/shop?search=${tag}`}
-                style={{
-                  padding: '6px 14px', borderRadius: 20,
-                  border: '1px solid var(--border)',
-                  fontSize: 13, color: 'var(--text-muted)',
-                  textDecoration: 'none',
-                }}
-              >
-                #{tag}
-              </Link>
-            ))}
-          </div>
+          {product.tags?.length > 0 && (
+            <div style={{ marginTop: 24, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {product.tags.map((tag: string) => (
+                <Link key={tag} href={`/shop?search=${tag}`}
+                  style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>
+                  #{tag}
+                </Link>
+              ))}
+            </div>
+          )}
 
-          {/* License info */}
-          <div style={{
-            marginTop: 32, padding: 20, borderRadius: 12,
-            border: '1px solid #d1fae5', background: '#f0fdf4',
-          }}>
-            <h3 style={{ fontSize: 15, marginBottom: 12, color: '#166534' }}>✅ License included</h3>
+          {/* License */}
+          <div style={{ marginTop: 32, padding: 20, borderRadius: 12, border: '1px solid #d1fae5', background: '#f0fdf4' }}>
+            <h3 style={{ fontSize: 15, marginBottom: 12, color: '#166534' }}>License included</h3>
             <div style={{ fontSize: 13, color: '#166534', lineHeight: 1.8 }}>
-              ✓ Use on Printify, Printful, or your own products<br />
-              ✓ Sell unlimited physical products (shirts, mugs, tumblers...)<br />
-              ✓ Use for DTF transfers and sublimation<br />
-              ✗ Cannot resell the digital file itself<br />
-              ✗ Cannot upload to stock/design marketplace
+              Use on Printify, Printful, or your own products<br />
+              Sell unlimited physical products (shirts, mugs, tumblers...)<br />
+              Use for DTF transfers and sublimation
             </div>
           </div>
         </div>
