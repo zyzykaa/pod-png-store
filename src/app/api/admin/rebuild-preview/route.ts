@@ -1,30 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { put } from '@vercel/blob'
+import sharp from 'sharp'
 
-// QUAN TRỌNG: dùng Edge Runtime thay Serverless
-// Edge Runtime có đầy đủ Web APIs (Canvas, ImageBitmap) không bị SharedArrayBuffer issue
-export const runtime = 'edge'
+// Node v24 trên Vercel hỗ trợ SharedArrayBuffer đầy đủ - Sharp hoạt động bình thường
+sharp.concurrency(1)
 
 function checkAuth(request: NextRequest) {
   return request.headers.get('x-admin-key') === process.env.ADMIN_SECRET_KEY
 }
 
+async function createPreview(buffer: Buffer): Promise<Buffer> {
+  const resized = await sharp(buffer)
+    .resize({ width: 500, height: 500, fit: 'inside', withoutEnlargement: true })
+    .toBuffer()
+
+  const meta = await sharp(resized).metadata()
+  const W = meta.width || 500
+  const H = meta.height || 500
+  const fz = Math.round(W * 0.07)
+  const badge = Math.round(W * 0.05)
+
+  const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(${W/2},${H/2}) rotate(-30)">
+      <text font-family="Arial" font-weight="700" font-size="${fz}" fill="rgba(255,255,255,0.3)"
+        text-anchor="middle" dy="-${fz*1.2}" letter-spacing="3">TIKLIFE.SHOP</text>
+      <text font-family="Arial" font-weight="700" font-size="${fz}" fill="rgba(255,255,255,0.3)"
+        text-anchor="middle" dy="0" letter-spacing="3">TIKLIFE.SHOP</text>
+      <text font-family="Arial" font-weight="700" font-size="${fz}" fill="rgba(255,255,255,0.3)"
+        text-anchor="middle" dy="${fz*1.2}" letter-spacing="3">TIKLIFE.SHOP</text>
+    </g>
+    <rect x="${W-badge*6.5}" y="${H-badge*1.8}" width="${badge*6}" height="${badge*1.5}"
+      rx="4" fill="rgba(233,69,96,0.88)"/>
+    <text font-family="Arial" font-weight="800" font-size="${badge}" fill="white"
+      x="${W-badge*3.5}" y="${H-badge*0.65}" text-anchor="middle">tiklife.shop</text>
+  </svg>`
+
+  return sharp(resized)
+    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .jpeg({ quality: 85 })
+    .toBuffer()
+}
+
+// GET: rebuild tất cả products
 export async function GET(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Edge Runtime không có Supabase admin client tốt
-  // Fetch products qua REST API
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-  const productsRes = await fetch(
-    `${supabaseUrl}/rest/v1/products?is_active=eq.true&select=id,slug,file_path`,
-    { headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` } }
-  )
-  const products: any[] = await productsRes.json()
+  const { data: products } = await supabaseAdmin
+    .from('products')
+    .select('id, slug, file_path')
+    .eq('is_active', true)
 
   if (!products?.length) {
     return NextResponse.json({ error: 'No products' }, { status: 404 })
@@ -36,86 +63,28 @@ export async function GET(request: NextRequest) {
     try {
       const cleanPath = product.file_path.replace(/^designs\//, '')
 
-      // Download file từ Supabase Storage qua REST
-      const fileRes = await fetch(
-        `${supabaseUrl}/storage/v1/object/designs/${cleanPath}`,
-        { headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` } }
-      )
+      const { data: fileData, error: dlErr } = await supabaseAdmin.storage
+        .from('designs')
+        .download(cleanPath)
 
-      if (!fileRes.ok) {
-        results.push({ slug: product.slug, status: `FAIL download: ${fileRes.status}` })
+      if (dlErr || !fileData) {
+        results.push({ slug: product.slug, status: 'FAIL: ' + (dlErr?.message || 'no data') })
         continue
       }
 
-      const arrayBuffer = await fileRes.arrayBuffer()
+      const buffer = Buffer.from(await fileData.arrayBuffer())
+      const preview = await createPreview(buffer)
 
-      // Dùng OffscreenCanvas để resize (Edge Runtime có đầy đủ Web APIs)
-      let resizedBuffer = arrayBuffer
-      try {
-        const blob = new Blob([arrayBuffer], { type: 'image/png' })
-        const bitmap = await createImageBitmap(blob)
-
-        const MAX = 500
-        let w = bitmap.width, h = bitmap.height
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX }
-        else { w = Math.round(w * MAX / h); h = MAX }
-
-        const canvas = new OffscreenCanvas(w, h)
-        const ctx = canvas.getContext('2d')!
-        ctx.drawImage(bitmap, 0, 0, w, h)
-        bitmap.close()
-
-        // Thêm watermark text
-        ctx.save()
-        ctx.translate(w / 2, h / 2)
-        ctx.rotate(-Math.PI / 6)
-        ctx.font = `bold ${Math.round(w * 0.07)}px Arial`
-        ctx.fillStyle = 'rgba(255,255,255,0.25)'
-        ctx.textAlign = 'center'
-        ctx.fillText('TIKLIFE.SHOP', 0, -Math.round(w * 0.08))
-        ctx.fillText('TIKLIFE.SHOP', 0, 0)
-        ctx.fillText('TIKLIFE.SHOP', 0, Math.round(w * 0.08))
-        ctx.restore()
-
-        // Badge góc dưới
-        const bh = Math.round(h * 0.07)
-        const bw = Math.round(w * 0.4)
-        ctx.fillStyle = 'rgba(233,69,96,0.85)'
-        ctx.roundRect(w - bw - 8, h - bh - 8, bw, bh, 4)
-        ctx.fill()
-        ctx.font = `bold ${Math.round(bh * 0.65)}px Arial`
-        ctx.fillStyle = 'white'
-        ctx.textAlign = 'center'
-        ctx.fillText('tiklife.shop', w - bw / 2 - 8, h - bh * 0.25 - 8)
-
-        const resizedBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 })
-        resizedBuffer = await resizedBlob.arrayBuffer()
-      } catch (canvasErr) {
-        // Fallback: upload file gốc nếu canvas không hoạt động
-        console.error('Canvas error:', canvasErr)
-      }
-
-      // Upload lên Vercel Blob
-      const blobResult = await put(`previews/${product.slug}-preview.jpg`, resizedBuffer, {
+      const blob = await put(`previews/${product.slug}-preview.jpg`, preview, {
         access: 'public',
         contentType: 'image/jpeg',
       })
 
-      // Update DB qua REST
-      await fetch(
-        `${supabaseUrl}/rest/v1/products?slug=eq.${product.slug}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'apikey': serviceKey,
-            'Authorization': `Bearer ${serviceKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ preview_url: blobResult.url }),
-        }
-      )
+      await supabaseAdmin.from('products')
+        .update({ preview_url: blob.url })
+        .eq('slug', product.slug)
 
-      results.push({ slug: product.slug, status: 'OK', url: blobResult.url })
+      results.push({ slug: product.slug, status: 'OK', url: blob.url })
     } catch (err: any) {
       results.push({ slug: product.slug, status: 'ERROR: ' + err.message })
     }
@@ -124,6 +93,39 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ results })
 }
 
+// POST: rebuild 1 product
 export async function POST(request: NextRequest) {
-  return NextResponse.json({ error: 'Use GET to rebuild all' }, { status: 405 })
+  if (!checkAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { slug } = await request.json()
+    const { data: product } = await supabaseAdmin
+      .from('products').select('id, slug, file_path').eq('slug', slug).single()
+
+    if (!product) return NextResponse.json({ error: 'Không tìm thấy' }, { status: 404 })
+
+    const cleanPath = product.file_path.replace(/^designs\//, '')
+    const { data: fileData, error: dlErr } = await supabaseAdmin.storage
+      .from('designs').download(cleanPath)
+
+    if (dlErr || !fileData) {
+      return NextResponse.json({ error: 'Download thất bại: ' + dlErr?.message }, { status: 500 })
+    }
+
+    const buffer = Buffer.from(await fileData.arrayBuffer())
+    const preview = await createPreview(buffer)
+
+    const blob = await put(`previews/${product.slug}-preview.jpg`, preview, {
+      access: 'public', contentType: 'image/jpeg',
+    })
+
+    await supabaseAdmin.from('products')
+      .update({ preview_url: blob.url }).eq('slug', product.slug)
+
+    return NextResponse.json({ success: true, preview_url: blob.url })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
 }
