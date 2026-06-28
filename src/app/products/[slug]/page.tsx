@@ -18,8 +18,7 @@ export async function generateMetadata({ params }: Props) {
 
   if (!product) return {}
 
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://tiklife.shop'
-  const ogImage = getAbsoluteImageUrl(product.preview_url) || `${BASE_URL}/og-image.jpg`
+  const ogImage = product.preview_url || 'https://tiklife.shop/og-image.jpg'
 
   return {
     title: `${product.title} | Tiklife`,

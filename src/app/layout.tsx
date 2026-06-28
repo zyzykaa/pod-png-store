@@ -2,33 +2,33 @@ import type { Metadata } from 'next'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://tiklife.shop'
-const OG_IMAGE = `${BASE_URL}/og-image.jpg`
-
 export const metadata: Metadata = {
-  metadataBase: new URL(BASE_URL),
+  metadataBase: new URL('https://tiklife.shop'),
   title: {
     default: 'Tiklife — Premium PNG Designs for Sublimation & DTF',
     template: '%s | Tiklife',
   },
   description: 'Download high-quality PNG designs for sublimation, DTF, and screen printing. 300 DPI transparent backgrounds. Commercial license included. Instant digital download.',
   keywords: ['PNG designs', 'sublimation designs', 'DTF designs', 'POD designs', 'commercial use PNG', 'tiklife'],
-  authors: [{ name: 'Tiklife' }],
-  creator: 'Tiklife',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: BASE_URL,
+    url: 'https://tiklife.shop',
     siteName: 'Tiklife',
     title: 'Tiklife — Premium PNG Designs for Sublimation & DTF',
     description: 'High-quality PNG designs for sublimation, DTF & screen printing. 300 DPI · Commercial license · Instant download.',
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'Tiklife PNG Designs' }],
+    images: [{
+      url: 'https://tiklife.shop/og-image.jpg',
+      width: 1200,
+      height: 630,
+      alt: 'Tiklife PNG Designs',
+    }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Tiklife — Premium PNG Designs for Sublimation & DTF',
     description: 'High-quality PNG designs for sublimation, DTF & screen printing.',
-    images: [OG_IMAGE],
+    images: ['https://tiklife.shop/og-image.jpg'],
   },
   robots: { index: true, follow: true },
 }
