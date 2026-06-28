@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       // Download PNG gốc từ designs bucket
       const { data: fileData, error: dlErr } = await supabaseAdmin.storage
         .from('designs')
-        .download(product.file_path)
+        .download(product.file_path.replace('designs/', ''))
 
       if (dlErr || !fileData) {
         results.push({ slug: product.slug, status: 'FAIL download: ' + (dlErr?.message || 'no data') })
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     const { data: fileData, error: dlErr } = await supabaseAdmin.storage
       .from('designs')
-      .download(product.file_path)
+      .download(product.file_path.replace('designs/', ''))
 
     if (dlErr || !fileData) {
       return NextResponse.json({ error: 'Download thất bại: ' + dlErr?.message }, { status: 500 })
