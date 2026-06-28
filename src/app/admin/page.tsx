@@ -33,12 +33,13 @@ function slugify(text: string) {
 }
 
 // Tao preview co watermark bang Canvas (client-side, khong can Sharp)
-async function createWatermarkedPreview(file: File): Promise<Blob> {
+async function createWatermarkedPreview(input: File | string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    const url = URL.createObjectURL(file)
+    const url = typeof input === 'string' ? input : URL.createObjectURL(input)
+    const needRevoke = typeof input !== 'string'
     img.onload = () => {
-      URL.revokeObjectURL(url)
+      if (needRevoke) URL.revokeObjectURL(url)
 
       // Tinh kich thuoc 500px
       const MAX = 500
@@ -480,13 +481,33 @@ export default function AdminPage() {
                   if (!urls.length) { newResults.push({ status: 'ERROR', error: 'Khong co URL hop le' }); continue }
 
                   try {
-                    const res = await fetch('/api/admin/bulk-upload', {
+                    // Buoc 1: lay file tu URL qua proxy
+                    const proxyRes = await fetch('/api/admin/bulk-upload', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
-                      body: JSON.stringify({ title: bp.title, urls, category: bp.category, price: bp.price }),
+                      body: JSON.stringify({ title: bp.title, urls, category: bp.category, price: bp.price, mode: 'fetch_only' }),
                     })
-                    const data = await res.json()
-                    newResults.push(data.error ? { status: 'ERROR', error: data.error } : { status: 'OK' })
+                    const proxyData = await proxyRes.json()
+                    if (proxyData.error) { newResults.push({ status: 'ERROR', error: proxyData.error }); continue }
+
+                    // Buoc 2: browser them watermark bang Canvas
+                    const previewBlob = await createWatermarkedPreview(proxyData.first_file_blob_url)
+
+                    // Buoc 3: upload preview co watermark len server
+                    const fd = new FormData()
+                    fd.append('slug', proxyData.slug)
+                    fd.append('title', bp.title)
+                    fd.append('category', bp.category)
+                    fd.append('price', bp.price)
+                    fd.append('compare_price', '9.99')
+                    fd.append('preview', previewBlob, 'preview.jpg')
+                    const saveRes = await fetch('/api/admin/bulk-upload', {
+                      method: 'PUT',
+                      headers: { 'x-admin-key': adminKey },
+                      body: fd,
+                    })
+                    const saveData = await saveRes.json()
+                    newResults.push(saveData.error ? { status: 'ERROR', error: saveData.error } : { status: 'OK' })
                   } catch(e: any) {
                     newResults.push({ status: 'ERROR', error: e.message })
                   }
