@@ -1,43 +1,38 @@
-import { Suspense } from 'react'
-import { createClient } from '@supabase/supabase-js'
+'use client'
+
+import { useEffect, useState } from 'react'
 import ProductCard from '@/components/shop/ProductCard'
 import { Product, CATEGORIES } from '@/types'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
-interface Props {
-  searchParams: Promise<{ category?: string; search?: string; page?: string }>
-}
+export default function ShopPage() {
+  const searchParams = useSearchParams()
+  const category = searchParams.get('category') || 'all'
+  const search = searchParams.get('search') || ''
+  const page = parseInt(searchParams.get('page') || '1')
 
-async function getProducts(category?: string, search?: string, page = 1) {
-  // Dung anon key - products la public data
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const [products, setProducts] = useState<Product[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
 
-  let query = supabase
-    .from('products')
-    .select('*', { count: 'exact' })
-    .eq('is_active', true)
-    .order('is_featured', { ascending: false })
-    .order('created_at', { ascending: false })
-    .range((page - 1) * 24, page * 24 - 1)
+  useEffect(() => {
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (category !== 'all') params.set('category', category)
+    if (search) params.set('search', search)
+    params.set('page', page.toString())
 
-  if (category && category !== 'all') query = query.eq('category', category)
-  if (search) query = query.ilike('title', `%${search}%`)
+    fetch(`/api/products?${params}`)
+      .then(r => r.json())
+      .then(d => {
+        setProducts(d.data || [])
+        setTotal(d.pagination?.total || 0)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [category, search, page])
 
-  const { data, count, error } = await query
-  if (error) console.error('Shop fetch error:', error.message)
-  return { products: (data as Product[]) || [], total: count || 0 }
-}
-
-export default async function ShopPage({ searchParams }: Props) {
-  const params = await searchParams
-  const category = params.category || 'all'
-  const search = params.search || ''
-  const page = parseInt(params.page || '1')
-
-  const { products, total } = await getProducts(category, search, page)
   const totalPages = Math.ceil(total / 24)
   const currentCategory = CATEGORIES.find(c => c.value === category)
 
@@ -48,7 +43,7 @@ export default async function ShopPage({ searchParams }: Props) {
           {search ? `Search: "${search}"` : currentCategory?.label || 'All Designs'}
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-          {total} designs found
+          {loading ? 'Loading...' : `${total} designs found`}
         </p>
       </div>
 
@@ -56,7 +51,7 @@ export default async function ShopPage({ searchParams }: Props) {
         {/* Sidebar */}
         <aside style={{ width: 200, flexShrink: 0, position: 'sticky', top: 120 }}>
           <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase' }}>
-            Categories
+            CATEGORIES
           </div>
           {CATEGORIES.map(cat => (
             <Link key={cat.value}
@@ -75,13 +70,24 @@ export default async function ShopPage({ searchParams }: Props) {
 
         {/* Products */}
         <div style={{ flex: 1 }}>
-          <form style={{ marginBottom: 24 }}>
+          <form onSubmit={e => {
+            e.preventDefault()
+            const fd = new FormData(e.currentTarget)
+            const s = fd.get('search') as string
+            window.location.href = s ? `/shop?search=${encodeURIComponent(s)}` : '/shop'
+          }} style={{ marginBottom: 24 }}>
             <input name="search" defaultValue={search}
               placeholder="Search designs..."
               style={{ width: '100%', height: 44, padding: '0 16px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 14, outline: 'none' }} />
           </form>
 
-          {products.length === 0 ? (
+          {loading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} style={{ background: '#f5f5f7', borderRadius: 12, height: 300, animation: 'pulse 1.5s infinite' }} />
+              ))}
+            </div>
+          ) : products.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
               <h3 style={{ fontSize: 20, marginBottom: 8 }}>No designs found</h3>
