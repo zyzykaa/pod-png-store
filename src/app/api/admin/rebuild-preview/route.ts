@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { put } from '@vercel/blob'
-import sharp from 'sharp'
-
-// Node v24 trên Vercel hỗ trợ SharedArrayBuffer đầy đủ - Sharp hoạt động bình thường
-sharp.concurrency(1)
 
 function checkAuth(request: NextRequest) {
   return request.headers.get('x-admin-key') === process.env.ADMIN_SECRET_KEY
 }
 
-async function createPreview(buffer: Buffer): Promise<Buffer> {
-  const resized = await sharp(buffer)
+async function createPreview(imageBuffer: Buffer): Promise<Buffer> {
+  // Dynamic import sharp để tránh module load issue
+  const sharp = (await import('sharp')).default
+  
+  // Disable multithreading hoàn toàn
+  sharp.concurrency(1)
+  sharp.simd(false)
+  sharp.cache(false)
+
+  const resized = await sharp(imageBuffer)
     .resize({ width: 500, height: 500, fit: 'inside', withoutEnlargement: true })
     .toBuffer()
 
@@ -21,7 +25,7 @@ async function createPreview(buffer: Buffer): Promise<Buffer> {
   const fz = Math.round(W * 0.07)
   const badge = Math.round(W * 0.05)
 
-  const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+  const svg = Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
     <g transform="translate(${W/2},${H/2}) rotate(-30)">
       <text font-family="Arial" font-weight="700" font-size="${fz}" fill="rgba(255,255,255,0.3)"
         text-anchor="middle" dy="-${fz*1.2}" letter-spacing="3">TIKLIFE.SHOP</text>
@@ -34,18 +38,23 @@ async function createPreview(buffer: Buffer): Promise<Buffer> {
       rx="4" fill="rgba(233,69,96,0.88)"/>
     <text font-family="Arial" font-weight="800" font-size="${badge}" fill="white"
       x="${W-badge*3.5}" y="${H-badge*0.65}" text-anchor="middle">tiklife.shop</text>
-  </svg>`
+  </svg>`)
 
   return sharp(resized)
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .composite([{ input: svg, top: 0, left: 0 }])
     .jpeg({ quality: 85 })
     .toBuffer()
 }
 
-// GET: rebuild tất cả products
 export async function GET(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Debug: log Node version và SharedArrayBuffer status
+  const debug = {
+    node: process.version,
+    sab: typeof SharedArrayBuffer !== 'undefined' ? 'available' : 'not available',
   }
 
   const { data: products } = await supabaseAdmin
@@ -54,7 +63,7 @@ export async function GET(request: NextRequest) {
     .eq('is_active', true)
 
   if (!products?.length) {
-    return NextResponse.json({ error: 'No products' }, { status: 404 })
+    return NextResponse.json({ error: 'No products', debug }, { status: 404 })
   }
 
   const results = []
@@ -68,7 +77,7 @@ export async function GET(request: NextRequest) {
         .download(cleanPath)
 
       if (dlErr || !fileData) {
-        results.push({ slug: product.slug, status: 'FAIL: ' + (dlErr?.message || 'no data') })
+        results.push({ slug: product.slug, status: 'FAIL download: ' + (dlErr?.message || 'no data') })
         continue
       }
 
@@ -90,10 +99,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ results })
+  return NextResponse.json({ results, debug })
 }
 
-// POST: rebuild 1 product
 export async function POST(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
