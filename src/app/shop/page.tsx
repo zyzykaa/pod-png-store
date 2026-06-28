@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import ProductCard from '@/components/shop/ProductCard'
 import { Product, CATEGORIES } from '@/types'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
-export default function ShopPage() {
+function ShopContent() {
   const searchParams = useSearchParams()
   const category = searchParams.get('category') || 'all'
   const search = searchParams.get('search') || ''
@@ -114,5 +114,13 @@ export default function ShopPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div style={{padding:64,textAlign:'center'}}>Loading...</div>}>
+      <ShopContent />
+    </Suspense>
   )
 }
