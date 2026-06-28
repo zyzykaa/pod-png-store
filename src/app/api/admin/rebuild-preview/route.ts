@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { put } from '@vercel/blob'
-import sharp from 'sharp'
 
 function checkAuth(request: NextRequest) {
   return request.headers.get('x-admin-key') === process.env.ADMIN_SECRET_KEY
 }
 
-// GET: rebuild tất cả products - lấy ảnh gốc làm preview (không watermark)
+// GET: rebuild tất cả products
 export async function GET(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,26 +27,21 @@ export async function GET(request: NextRequest) {
     try {
       // Download PNG gốc - bỏ prefix "designs/" vì bucket đã là "designs"
       const cleanPath = product.file_path.replace('designs/', '')
+      
       const { data: fileData, error: dlErr } = await supabaseAdmin.storage
         .from('designs')
         .download(cleanPath)
 
       if (dlErr || !fileData) {
-        results.push({ slug: product.slug, status: 'FAIL download: ' + (dlErr?.message || 'no data') })
+        results.push({ slug: product.slug, status: 'FAIL: ' + (dlErr?.message || 'no data') })
         continue
       }
 
-      // Resize về 1200px, không watermark
-      const buffer = Buffer.from(await fileData.arrayBuffer())
-      const resized = await sharp(buffer)
-        .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 90 })
-        .toBuffer()
-
-      // Upload lên Vercel Blob
-      const blob = await put(`${product.slug}-preview.jpg`, resized, {
+      // Upload thẳng PNG gốc lên Vercel Blob - không dùng Sharp
+      const arrayBuffer = await fileData.arrayBuffer()
+      const blob = await put(`${product.slug}-preview.png`, arrayBuffer, {
         access: 'public',
-        contentType: 'image/jpeg',
+        contentType: 'image/png',
       })
 
       // Update DB
@@ -65,7 +59,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ results })
 }
 
-// POST: rebuild 1 product theo slug
+// POST: rebuild 1 product
 export async function POST(request: NextRequest) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -81,7 +75,7 @@ export async function POST(request: NextRequest) {
       .eq('slug', slug)
       .single()
 
-    if (!product) return NextResponse.json({ error: 'Product không tồn tại' }, { status: 404 })
+    if (!product) return NextResponse.json({ error: 'Không tìm thấy product' }, { status: 404 })
 
     const cleanPath = product.file_path.replace('designs/', '')
     const { data: fileData, error: dlErr } = await supabaseAdmin.storage
@@ -92,15 +86,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Download thất bại: ' + dlErr?.message }, { status: 500 })
     }
 
-    const buffer = Buffer.from(await fileData.arrayBuffer())
-    const resized = await sharp(buffer)
-      .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 90 })
-      .toBuffer()
-
-    const blob = await put(`${product.slug}-preview.jpg`, resized, {
+    const arrayBuffer = await fileData.arrayBuffer()
+    const blob = await put(`${product.slug}-preview.png`, arrayBuffer, {
       access: 'public',
-      contentType: 'image/jpeg',
+      contentType: 'image/png',
     })
 
     await supabaseAdmin
