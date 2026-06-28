@@ -105,7 +105,7 @@ const input: React.CSSProperties = {
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState('')
   const [authed, setAuthed] = useState(false)
-  const [tab, setTab] = useState<'upload' | 'products'>('upload')
+  const [tab, setTab] = useState<'upload' | 'products' | 'bulk'>('upload')
 
   // Upload state
   const [form, setForm] = useState<FormState>(defaultForm)
@@ -122,6 +122,13 @@ export default function AdminPage() {
   const [loadingProducts, setLoadingProducts] = useState(false)
 
   const designRef = useRef<HTMLInputElement>(null)
+
+  // Bulk upload state
+  const [bulkUrls, setBulkUrls] = useState('')
+  const [bulkCategory, setBulkCategory] = useState('miscellaneous')
+  const [bulkPrice, setBulkPrice] = useState('3.99')
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkResults, setBulkResults] = useState<any[]>([])
 
   function log(msg: string) { setLogs(p => [...p, msg]) }
 
@@ -274,10 +281,10 @@ export default function AdminPage() {
       <div style={{ background: 'var(--brand)', color: 'white', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700 }}>Tiklife Admin</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          {(['upload', 'products'] as const).map(t => (
+          {(['upload', 'bulk', 'products'] as const).map(t => (
             <button key={t} onClick={() => { setTab(t); if (t === 'products') loadProducts() }}
               style={{ padding: '8px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13, background: tab === t ? 'var(--brand-accent)' : 'rgba(255,255,255,0.15)', color: 'white' }}>
-              {t === 'upload' ? 'Upload Design' : 'Quan ly Products'}
+              {t === 'upload' ? 'Upload Design' : t === 'bulk' ? 'Bulk URL Upload' : 'Quan ly Products'}
             </button>
           ))}
         </div>
@@ -386,6 +393,93 @@ export default function AdminPage() {
                 {uploading ? 'Dang upload...' : 'Upload & Them vao Shop'}
               </button>
             </div>
+          </div>
+        )}
+
+
+        {/* BULK UPLOAD TAB */}
+        {tab === 'bulk' && (
+          <div style={{ background: 'white', borderRadius: 16, padding: 28 }}>
+            <h2 style={{ fontSize: 18, marginBottom: 6 }}>Bulk Upload tu URL</h2>
+            <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
+              Dan danh sach link PNG (moi link 1 dong). Server se tu download, luu storage va them vao shop.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Category</label>
+                <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}
+                  style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, background: 'white' }}>
+                  {CATEGORIES.slice(1).map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Gia ban ($)</label>
+                <input value={bulkPrice} onChange={e => setBulkPrice(e.target.value)} type="number" step="0.01"
+                  style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' as const }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Gia goc ($)</label>
+                <input value="9.99" readOnly
+                  style={{ width: '100%', height: 40, padding: '0 12px', border: '1.5px solid #e5e5e5', borderRadius: 8, fontSize: 13, background: '#f9f9f9', boxSizing: 'border-box' as const }} />
+              </div>
+            </div>
+
+            <textarea
+              value={bulkUrls}
+              onChange={e => setBulkUrls(e.target.value)}
+              placeholder={'https://example.com/design1.png\nhttps://example.com/design2.png\nhttps://example.com/design3.png'}
+              rows={10}
+              style={{ width: '100%', padding: '12px', border: '1.5px solid #e5e5e5', borderRadius: 10, fontSize: 13, fontFamily: 'monospace', resize: 'vertical' as const, boxSizing: 'border-box' as const, marginBottom: 16 }}
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <button
+                disabled={bulkLoading || !bulkUrls.trim()}
+                onClick={async () => {
+                  const urls = bulkUrls.split('\n').map(u => u.trim()).filter(u => u.startsWith('http'))
+                  if (!urls.length) return
+                  setBulkLoading(true)
+                  setBulkResults([])
+                  try {
+                    const res = await fetch('/api/admin/bulk-upload', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+                      body: JSON.stringify({ urls, category: bulkCategory, price: bulkPrice }),
+                    })
+                    const data = await res.json()
+                    setBulkResults(data.results || [])
+                  } catch(e: any) {
+                    setBulkResults([{ url: 'error', status: 'ERROR', error: e.message }])
+                  }
+                  setBulkLoading(false)
+                }}
+                style={{ height: 48, padding: '0 32px', background: bulkLoading ? '#ccc' : 'var(--brand)', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: bulkLoading ? 'not-allowed' : 'pointer' }}>
+                {bulkLoading ? 'Dang upload...' : `Upload ${bulkUrls.split('\n').filter(u => u.trim().startsWith('http')).length} files`}
+              </button>
+              {bulkResults.length > 0 && (
+                <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
+                  {bulkResults.filter(r => r.status === 'OK').length}/{bulkResults.length} thanh cong
+                </span>
+              )}
+            </div>
+
+            {bulkResults.length > 0 && (
+              <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e5e5', borderRadius: 10, padding: 12 }}>
+                {bulkResults.map((r, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f5f5f5', fontSize: 12 }}>
+                    <span style={{ fontSize: 16 }}>{r.status === 'OK' ? '✅' : '❌'}</span>
+                    <span style={{ color: '#888', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.url?.split('/').pop()}
+                    </span>
+                    {r.status === 'OK'
+                      ? <span style={{ color: '#16a34a', fontWeight: 600 }}>{r.title}</span>
+                      : <span style={{ color: '#dc2626' }}>{r.error}</span>
+                    }
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
