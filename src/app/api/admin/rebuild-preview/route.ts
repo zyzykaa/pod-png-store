@@ -7,10 +7,7 @@ function checkAuth(request: NextRequest) {
 }
 
 async function createPreview(imageBuffer: Buffer): Promise<Buffer> {
-  // Dynamic import sharp để tránh module load issue
   const sharp = (await import('sharp')).default
-  
-  // Disable multithreading hoàn toàn
   sharp.concurrency(1)
   sharp.simd(false)
   sharp.cache(false)
@@ -51,10 +48,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Debug: log Node version và SharedArrayBuffer status
   const debug = {
     node: process.version,
-    sab: typeof SharedArrayBuffer !== 'undefined' ? 'available' : 'not available',
+    sab: typeof SharedArrayBuffer !== 'undefined',
   }
 
   const { data: products } = await supabaseAdmin
@@ -95,7 +91,13 @@ export async function GET(request: NextRequest) {
 
       results.push({ slug: product.slug, status: 'OK', url: blob.url })
     } catch (err: any) {
-      results.push({ slug: product.slug, status: 'ERROR: ' + err.message })
+      // Log full error detail
+      results.push({ 
+        slug: product.slug, 
+        status: 'ERROR',
+        error: err.message,
+        stack: err.stack?.split('\n').slice(0, 3).join(' | ')
+      })
     }
   }
 
@@ -134,6 +136,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, preview_url: blob.url })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ 
+      error: err.message,
+      stack: err.stack?.split('\n').slice(0, 3).join(' | ')
+    }, { status: 500 })
   }
 }
