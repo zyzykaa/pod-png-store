@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { CATEGORIES } from '@/types'
 
 interface Product {
@@ -123,7 +123,34 @@ export default function AdminPage() {
   const [loadingProducts, setLoadingProducts] = useState(false)
 
   const designRef = useRef<HTMLInputElement>(null)
+  const previewBoxRef = useRef<HTMLDivElement>(null)
   const varRefs = useRef<(HTMLInputElement | null)[]>([])
+
+  // Xu ly paste anh tu clipboard (Ctrl+V hoac screenshot)
+  useEffect(() => {
+    async function handlePaste(e: ClipboardEvent) {
+      const items = Array.from(e.clipboardData?.items || [])
+      const imageItem = items.find(item => item.type.startsWith('image/'))
+      if (!imageItem) return
+
+      e.preventDefault()
+      const blob = imageItem.getAsFile()
+      if (!blob) return
+
+      setPastedPreview(blob)
+      setPastedPreviewUrl(URL.createObjectURL(blob))
+      setPreviewBlob(blob)
+      setPreviewUrl(URL.createObjectURL(blob))
+      log('Da dan anh preview tu clipboard!')
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [])
+
+  // Paste preview state
+  const [pastedPreview, setPastedPreview] = useState<Blob | null>(null)
+  const [pastedPreviewUrl, setPastedPreviewUrl] = useState('')
 
   // Variations state
   const [variations, setVariations] = useState([
@@ -225,8 +252,11 @@ export default function AdminPage() {
       }
       const filePath = variationPaths[0]?.path || ''
 
-      log('Upload preview len Vercel Blob...')
-      const pUrl = await uploadFile(previewBlob, 'preview', form.slug)
+      // Uu tien pasted preview, neu khong co thi dung auto watermark
+      const finalPreview = pastedPreview || previewBlob
+      if (!finalPreview) throw new Error('Chua co preview')
+      log('Upload preview...')
+      const pUrl = await uploadFile(finalPreview, 'preview', form.slug)
       log('Upload preview OK!')
 
       log('Luu vao database...')
@@ -256,6 +286,8 @@ export default function AdminPage() {
       setSuccessMsg(`"${form.title}" da them vao shop!`)
       setForm(defaultForm)
       setVariations([{ label: 'Main', file: null, previewUrl: '' }])
+      setPastedPreview(null)
+      setPastedPreviewUrl('')
       setPreviewUrl('')
       setPreviewBlob(null)
     } catch (err: any) {
@@ -389,15 +421,75 @@ export default function AdminPage() {
                 </div>
               ))}
 
-              {/* Preview watermark (variation 0) */}
-              {previewUrl && (
-                <div style={{ background: 'white', borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e5e5' }}>
-                  <div style={{ padding: '8px 12px', fontSize: 11, fontWeight: 700, color: '#888', borderBottom: '1px solid #f0f0f0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Preview (with watermark)
+              {/* Preview box - paste hoac tu dong tao watermark */}
+              <div
+                ref={previewBoxRef}
+                style={{
+                  background: 'white', borderRadius: 12, overflow: 'hidden',
+                  border: pastedPreviewUrl ? '2px solid #6366f1' : '2px dashed #e5e5e5',
+                  minHeight: 120,
+                }}>
+                <div style={{
+                  padding: '8px 12px', fontSize: 11, fontWeight: 700,
+                  color: pastedPreviewUrl ? '#6366f1' : '#aaa',
+                  borderBottom: '1px solid #f0f0f0',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                }}>
+                  <span>{pastedPreviewUrl ? 'Preview (Pasted)' : previewUrl ? 'Preview (Auto Watermark)' : 'Preview'}</span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {pastedPreviewUrl && (
+                      <button
+                        onClick={() => {
+                          setPastedPreview(null)
+                          setPastedPreviewUrl('')
+                          // Fallback ve watermark tu dong neu co file
+                          if (variations[0]?.file) {
+                            createWatermarkedPreview(variations[0].file).then(blob => {
+                              setPreviewBlob(blob)
+                              setPreviewUrl(URL.createObjectURL(blob))
+                            })
+                          } else {
+                            setPreviewBlob(null)
+                            setPreviewUrl('')
+                          }
+                        }}
+                        style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid #e5e5e5', background: 'white', cursor: 'pointer', color: '#888' }}>
+                        Use Auto
+                      </button>
+                    )}
                   </div>
-                  <img src={previewUrl} alt="watermarked preview" style={{ width: '100%', maxHeight: 200, objectFit: 'contain' }} />
                 </div>
-              )}
+
+                {pastedPreviewUrl || previewUrl ? (
+                  <div style={{ position: 'relative' }}>
+                    <img
+                      src={pastedPreviewUrl || previewUrl}
+                      alt="preview"
+                      style={{ width: '100%', maxHeight: 220, objectFit: 'contain' }}
+                    />
+                    {pastedPreviewUrl && (
+                      <div style={{
+                        position: 'absolute', top: 6, right: 6,
+                        background: '#6366f1', color: 'white',
+                        fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+                      }}>
+                        PASTED
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ padding: 20, textAlign: 'center', color: '#bbb' }}>
+                    <div style={{ fontSize: 28, marginBottom: 6 }}>📋</div>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>
+                      Press <kbd style={{ background: '#f0f0f0', padding: '2px 6px', borderRadius: 4, color: '#555', fontFamily: 'monospace' }}>Ctrl+V</kbd> to paste screenshot
+                    </div>
+                    <div style={{ fontSize: 11, color: '#ccc', marginTop: 4 }}>
+                      or upload a design above to auto-generate
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {logs.length > 0 && (
                 <div style={{ background: 'white', borderRadius: 10, padding: '12px 16px' }}>
