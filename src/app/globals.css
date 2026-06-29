@@ -89,3 +89,66 @@ h1, h2, h3, h4 {
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-in { animation: fadeIn 0.3s ease forwards; }
+
+/* ===== RESPONSIVE MOBILE ===== */
+@media (max-width: 768px) {
+
+  /* Container padding */
+  .container { padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* Product grid */
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Hero trust stats: 2x2 tren mobile */
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* How it works: 2 cols tren mobile */
+  .how-it-works {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .how-it-works-line { display: none !important; }
+
+  /* Footer grid */
+  .footer-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 32px !important;
+  }
+
+  /* Shop sidebar: an di tren mobile */
+  .shop-sidebar { display: none !important; }
+  .shop-mobile-filters { display: flex !important; }
+
+  /* Product page: stack tren mobile */
+  .product-layout {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  /* Navbar */
+  .nav-categories { display: none !important; }
+  .nav-mobile-menu { display: flex !important; }
+
+  /* Admin grid */
+  .admin-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

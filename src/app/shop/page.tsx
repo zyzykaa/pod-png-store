@@ -202,18 +202,25 @@ function ShopContent() {
 
       {/* Mobile filter toggle */}
       <button onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
+        className="shop-mobile-filters"
         style={{
           display: 'none', width: '100%', height: 44, borderRadius: 10,
           border: '1.5px solid #e5e5e5', background: 'white', fontSize: 14,
           fontWeight: 600, cursor: 'pointer', marginBottom: 16,
-        }}
-        className="mobile-filter-btn">
+          alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
         {mobileFilterOpen ? '✕ Close Filters' : '⚙️ Filters & Sort'}
       </button>
 
+      {/* Mobile filter panel */}
+      {mobileFilterOpen && (
+        <div style={{ background: 'white', borderRadius: 14, padding: 20, border: '1px solid #f0f0f0', marginBottom: 16 }}>
+          <SidebarContent />
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
         {/* Sidebar */}
-        <aside style={{
+        <aside className="shop-sidebar" style={{
           width: 210, flexShrink: 0, position: 'sticky', top: 100,
           background: 'white', borderRadius: 14, padding: 20,
           border: '1px solid #f0f0f0',

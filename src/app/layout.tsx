@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main>{children}</main>
         <footer style={{ borderTop: '1px solid var(--border)', paddingTop: 56, paddingBottom: 32, marginTop: 80, background: '#0f0c29', color: 'white' }}>
           <div className="container">
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 48, marginBottom: 48 }}>
+            <div className="footer-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 48, marginBottom: 48 }}>
               {/* Brand */}
               <div>
                 <div style={{ fontWeight: 900, fontSize: 24, marginBottom: 12 }}>

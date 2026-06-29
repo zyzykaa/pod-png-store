@@ -157,8 +157,8 @@ export default async function HomePage() {
               The fastest way to get professional designs for your POD store
             </p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, position: 'relative' }}>
-            <div style={{ position: 'absolute', top: 28, left: '12.5%', right: '12.5%', height: 2, background: 'linear-gradient(90deg, #e94560, #f97316)', zIndex: 0 }} />
+          <div className='how-it-works' style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, position: 'relative' }}>
+            <div className='how-it-works-line' style={{ position: 'absolute', top: 28, left: '12.5%', right: '12.5%', height: 2, background: 'linear-gradient(90deg, #e94560, #f97316)', zIndex: 0 }} />
             {[
               { step: '01', icon: '🎨', title: 'Pick a design', desc: 'Browse 100s of designs. Filter by niche, style, or keyword.' },
               { step: '02', icon: '💳', title: 'Checkout fast', desc: 'Pay with PayPal. No account required. Takes 30 seconds.' },

@@ -418,7 +418,7 @@ export default function AdminPage() {
 
         {/* UPLOAD TAB */}
         {tab === 'upload' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div className='admin-grid' style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
 
             {/* LEFT: Design file + Preview */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
