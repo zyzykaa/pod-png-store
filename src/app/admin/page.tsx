@@ -414,34 +414,43 @@ export default function AdminPage() {
             {/* LEFT: Design file + Preview */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-              {/* ZIP / PNG upload */}
+              {/* ZIP / PNG upload - ho tro keo tha */}
               <div
                 onClick={() => designRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#e94560'; e.currentTarget.style.background = '#fff5f6' }}
+                onDragLeave={e => { e.currentTarget.style.borderColor = designFile ? '#16a34a' : '#e5e5e5'; e.currentTarget.style.background = 'white' }}
+                onDrop={e => {
+                  e.preventDefault()
+                  e.currentTarget.style.borderColor = designFile ? '#16a34a' : '#e5e5e5'
+                  e.currentTarget.style.background = 'white'
+                  const file = e.dataTransfer.files?.[0]
+                  if (file) handleDesignFile(file)
+                }}
                 style={{
                   background: 'white', borderRadius: 14,
                   border: designFile ? '2px solid #16a34a' : '2px dashed #e5e5e5',
-                  cursor: 'pointer', minHeight: 140,
+                  cursor: 'pointer', minHeight: 160,
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
                   padding: 24, textAlign: 'center', gap: 10,
+                  transition: 'all 0.15s',
                 }}>
                 <input ref={designRef} type="file" accept=".zip,.png,.jpg,.jpeg,.webp" hidden
                   onChange={e => e.target.files?.[0] && handleDesignFile(e.target.files[0])} />
                 {designFile ? (
                   <>
-                    <div style={{ fontSize: 36 }}>{designFile.name.endsWith('.zip') ? '🗜️' : '🎨'}</div>
+                    <div style={{ fontSize: 40 }}>{designFile.name.endsWith('.zip') ? '🗜️' : '🎨'}</div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#16a34a' }}>{designFile.name}</div>
                     <div style={{ fontSize: 12, color: '#888' }}>
-                      {(designFile.size / 1024 / 1024).toFixed(1)} MB · Click to change
+                      {(designFile.size / 1024 / 1024).toFixed(1)} MB · Click or drag to change
                     </div>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 40 }}>📦</div>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>Upload Design File</div>
-                    <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>
-                      Drop <strong>ZIP</strong> (all variations inside)<br/>
-                      or single <strong>PNG/JPG</strong>
+                    <div style={{ fontSize: 44 }}>📦</div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>Drop file here or click to browse</div>
+                    <div style={{ fontSize: 13, color: '#aaa', lineHeight: 1.7 }}>
+                      <strong style={{ color: '#555' }}>ZIP</strong> (all variations) · <strong style={{ color: '#555' }}>PNG</strong> · JPG · WEBP
                     </div>
                   </>
                 )}
