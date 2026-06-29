@@ -19,10 +19,28 @@ interface FormState {
 
 const defaultForm: FormState = {
   slug: '', title: '', description: '',
-  price: '3.99', compare_price: '9.99', category: 'western',
+  price: '2.99', compare_price: '9.99', category: 'western',
   tags: '', file_info_dpi: '300', file_info_size: '4500x5400px',
   is_featured: false,
 }
+
+
+  // Auto detect category tu title
+  function detectCategory(title: string): string {
+    const t = title.toLowerCase()
+    if (/western|cowboy|cowgirl|howdy|rodeo|country|ranch|boots|horsе/.test(t)) return 'western'
+    if (/christmas|xmas|santa|holiday|noel|winter|snowflake|reindeer/.test(t)) return 'christmas'
+    if (/mama|mom|mother|mommy|grandma|nana|auntie/.test(t)) return 'mama'
+    if (/sport|football|baseball|basketball|soccer|hockey|team|league/.test(t)) return 'sports-and-teams'
+    if (/halloween|fall|autumn|pumpkin|witch|ghost|spooky|horror/.test(t)) return 'halloween-and-fall'
+    if (/christian|faith|jesus|god|cross|church|bible|blessed|pray/.test(t)) return 'christian-and-faith'
+    if (/coffee|espresso|latte|cafe|brew|bean/.test(t)) return 'coffee-lovers'
+    if (/summer|beach|sun|tropical|ocean|wave|surfing/.test(t)) return 'summer'
+    if (/valentine|love|heart|romance|couple|wedding/.test(t)) return 'valentines-day'
+    if (/4th|july|patriot|america|usa|flag|freedom|independence/.test(t)) return '4th-of-july'
+    if (/tumbler|wrap|cup|mug|bottle|drinkware/.test(t)) return 'tumbler-wraps'
+    return 'miscellaneous'
+  }
 
 function slugify(text: string) {
   return text.toLowerCase()
@@ -167,9 +185,11 @@ export default function AdminPage() {
   function log(msg: string) { setLogs(p => [...p, msg]) }
 
   function handleTitleChange(val: string) {
+    const autoCategory = detectCategory(val)
     setForm(f => ({
       ...f, title: val,
       slug: f.slug === slugify(f.title) || !f.slug ? slugify(val) : f.slug,
+      category: autoCategory,
     }))
   }
 
