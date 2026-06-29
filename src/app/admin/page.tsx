@@ -184,12 +184,68 @@ export default function AdminPage() {
 
   function log(msg: string) { setLogs(p => [...p, msg]) }
 
+
+  // Auto generate tags tu title
+  function generateTags(title: string): string {
+    const t = title.toLowerCase()
+    const tags: string[] = []
+
+    // Niche tags
+    if (/western|cowboy|cowgirl|howdy|rodeo|country|ranch/.test(t)) tags.push('western', 'country', 'cowgirl', 'dtf')
+    if (/christmas|xmas|santa|holiday|noel/.test(t)) tags.push('christmas', 'holiday', 'santa', 'xmas')
+    if (/mama|mom|mother|mommy/.test(t)) tags.push('mama', 'mom', 'mother', 'mothers-day')
+    if (/grandma|nana|granny/.test(t)) tags.push('grandma', 'nana', 'grandmother')
+    if (/sport|football|baseball|basketball|soccer/.test(t)) tags.push('sports', 'team', 'game-day')
+    if (/halloween|fall|pumpkin|witch/.test(t)) tags.push('halloween', 'fall', 'spooky', 'autumn')
+    if (/christian|faith|jesus|god|cross|blessed/.test(t)) tags.push('christian', 'faith', 'religious', 'blessed')
+    if (/coffee|latte|espresso|cafe/.test(t)) tags.push('coffee', 'coffee-lover', 'cafe')
+    if (/summer|beach|tropical|ocean/.test(t)) tags.push('summer', 'beach', 'vacation')
+    if (/valentine|love|heart/.test(t)) tags.push('valentine', 'love', 'heart', 'romantic')
+    if (/tumbler|wrap|mug|cup/.test(t)) tags.push('tumbler', 'tumbler-wrap', 'drinkware')
+    if (/4th|july|patriot|america|usa/.test(t)) tags.push('4th-of-july', 'patriotic', 'america', 'usa')
+
+    // Format tags
+    if (/png/.test(t)) tags.push('png')
+    if (/sublimation/.test(t)) tags.push('sublimation')
+    if (/dtf/.test(t)) tags.push('dtf')
+
+    // Luon them cac tag chung
+    tags.push('png-design', 'commercial-use', 'instant-download', 'printify', 'printful')
+
+    return [...new Set(tags)].join(', ')
+  }
+
+  // Auto generate description tu title
+  function generateDescription(title: string, category: string): string {
+    const catLabels: Record<string, string> = {
+      'western': 'Western & Country',
+      'christmas': 'Christmas',
+      'mama': 'Mom & Family',
+      'sports-and-teams': 'Sports & Teams',
+      'halloween-and-fall': 'Halloween & Fall',
+      'christian-and-faith': 'Christian & Faith',
+      'coffee-lovers': 'Coffee Lovers',
+      'summer': 'Summer',
+      'valentines-day': "Valentine's Day",
+      '4th-of-july': '4th of July',
+      'tumbler-wraps': 'Tumbler Wraps',
+      'miscellaneous': 'General',
+    }
+    const catLabel = catLabels[category] || category
+    return `High-quality ${title} PNG design for sublimation, DTF printing, and print-on-demand. Perfect for ${catLabel} themed products including t-shirts, hoodies, tumblers, and mugs. 300 DPI transparent background. Instant digital download. Commercial license included — sell unlimited products on Printify, Printful, Etsy, and more.`
+  }
+
   function handleTitleChange(val: string) {
     const autoCategory = detectCategory(val)
+    const autoTags = generateTags(val)
+    const autoDesc = generateDescription(val, autoCategory)
     setForm(f => ({
-      ...f, title: val,
+      ...f,
+      title: val,
       slug: f.slug === slugify(f.title) || !f.slug ? slugify(val) : f.slug,
       category: autoCategory,
+      tags: autoTags,
+      description: autoDesc,
     }))
   }
 
