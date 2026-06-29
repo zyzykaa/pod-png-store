@@ -231,6 +231,27 @@ export default function AdminPage() {
     return `High-quality ${title} PNG design for sublimation, DTF printing, and print-on-demand. Perfect for ${catLabel} themed products including t-shirts, hoodies, tumblers, and mugs. 300 DPI transparent background. Instant digital download. Commercial license included — sell unlimited products on Printify, Printful, Etsy, and more.`
   }
 
+  function cleanTitle(title: string): string {
+    return title
+      .replace(/\bt[-\s]?shirts?\b/gi, 'PNG Design')
+      .replace(/\bunisex\s+t[-\s]?shirts?\b/gi, 'PNG Design')
+      .replace(/\btees?\b/gi, 'PNG')
+      .replace(/\bshirts?\b/gi, 'PNG Design')
+      .replace(/\bhoodies?\b/gi, 'PNG Design')
+      .replace(/\bsweatshirts?\b/gi, 'PNG Design')
+      .replace(/\btank\s*tops?\b/gi, 'PNG Design')
+      .replace(/\bpullovers?\b/gi, 'PNG Design')
+      .replace(/\bcrewnecks?\b/gi, 'PNG Design')
+      .replace(/\bGraphic\s+Tee\b/gi, 'PNG Design')
+      .replace(/\b(Classic|Slim|Regular)\s+Fit\b/gi, '')
+      .replace(/\bMenswear\b/gi, 'Design')
+      .replace(/\bWomenswear\b/gi, 'Design')
+      .replace(/\bApparel\b/gi, 'PNG')
+      .replace(/\bClothing\b/gi, 'PNG Design')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+  }
+
   function handleTitleChange(val: string) {
     val = cleanTitle(val)
     const autoCategory = detectCategory(val)
