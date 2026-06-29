@@ -51,11 +51,11 @@ function slugify(text: string) {
 }
 
 // Tao preview co watermark bang Canvas (client-side, khong can Sharp)
-async function createWatermarkedPreview(input: File | string): Promise<Blob> {
+async function createWatermarkedPreview(input: File | Blob | string): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = typeof input === 'string' ? input : URL.createObjectURL(input)
-    const needRevoke = typeof input !== 'string'
+    const needRevoke = typeof input !== 'string'  // revoke ca File lan Blob
     img.onload = () => {
       if (needRevoke) URL.revokeObjectURL(url)
 
@@ -152,11 +152,26 @@ export default function AdminPage() {
       const blob = imageItem.getAsFile()
       if (!blob) return
 
-      setPastedPreview(blob)
+      // Hien thi anh goc truoc
       setPastedPreviewUrl(URL.createObjectURL(blob))
-      setPreviewBlob(blob)
-      setPreviewUrl(URL.createObjectURL(blob))
-      log('Da dan anh preview tu clipboard!')
+      log('Da dan anh - dang them watermark...')
+
+      // Them watermark bang Canvas
+      try {
+        const watermarked = await createWatermarkedPreview(blob)
+        setPastedPreview(watermarked)
+        setPreviewBlob(watermarked)
+        const wUrl = URL.createObjectURL(watermarked)
+        setPastedPreviewUrl(wUrl)
+        setPreviewUrl(wUrl)
+        log('Watermark hoan thanh!')
+      } catch (e: any) {
+        // Neu loi thi dung anh goc
+        setPastedPreview(blob)
+        setPreviewBlob(blob)
+        setPreviewUrl(URL.createObjectURL(blob))
+        log('Da dan anh preview (khong co watermark)')
+      }
     }
 
     window.addEventListener('paste', handlePaste)
