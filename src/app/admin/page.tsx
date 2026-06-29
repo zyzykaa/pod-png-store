@@ -152,26 +152,13 @@ export default function AdminPage() {
       const blob = imageItem.getAsFile()
       if (!blob) return
 
-      // Hien thi anh goc truoc
-      setPastedPreviewUrl(URL.createObjectURL(blob))
-      log('Da dan anh - dang them watermark...')
-
-      // Them watermark bang Canvas
-      try {
-        const watermarked = await createWatermarkedPreview(blob)
-        setPastedPreview(watermarked)
-        setPreviewBlob(watermarked)
-        const wUrl = URL.createObjectURL(watermarked)
-        setPastedPreviewUrl(wUrl)
-        setPreviewUrl(wUrl)
-        log('Watermark hoan thanh!')
-      } catch (e: any) {
-        // Neu loi thi dung anh goc
-        setPastedPreview(blob)
-        setPreviewBlob(blob)
-        setPreviewUrl(URL.createObjectURL(blob))
-        log('Da dan anh preview (khong co watermark)')
-      }
+      // Dung thang anh goc (watermark tam thoi tat)
+      const url = URL.createObjectURL(blob)
+      setPastedPreview(blob)
+      setPastedPreviewUrl(url)
+      setPreviewBlob(blob)
+      setPreviewUrl(url)
+      log('Da dan anh preview!')
     }
 
     window.addEventListener('paste', handlePaste)
