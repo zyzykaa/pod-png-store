@@ -39,51 +39,85 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Navbar />
         <main>{children}</main>
-        <footer style={{
-          borderTop: '1px solid var(--border)',
-          padding: '40px 24px',
-          marginTop: 80,
-          background: 'var(--bg-soft)',
-        }}>
-          <div className="container" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: 32,
-          }}>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--brand)', marginBottom: 8 }}>
-                tik<span style={{ color: 'var(--brand-accent)' }}>life</span>
+        <footer style={{ borderTop: '1px solid var(--border)', paddingTop: 56, paddingBottom: 32, marginTop: 80, background: '#0f0c29', color: 'white' }}>
+          <div className="container">
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 48, marginBottom: 48 }}>
+              {/* Brand */}
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 24, marginBottom: 12 }}>
+                  tik<span style={{ color: '#e94560' }}>life</span>
+                </div>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 20, maxWidth: 260 }}>
+                  Premium PNG designs for print-on-demand sellers. 300 DPI · Commercial license · Instant download.
+                </p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {['Printify', 'Printful', 'DTF'].map(b => (
+                    <span key={b} style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>{b}</span>
+                  ))}
+                </div>
               </div>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                High-quality PNG designs for sublimation, DTF, and screen printing. 300 DPI · Commercial license included.
-              </p>
-            </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Shop</div>
-              {['All Designs', 'Western & Country', 'Christmas', 'Mama', 'Sports'].map(l => (
-                <div key={l} style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>{l}</div>
-              ))}
-            </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Info</div>
-              {['License Info', 'FAQ', 'Contact Us', 'Refund Policy'].map(l => (
-                <div key={l} style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>{l}</div>
-              ))}
-            </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>File details</div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.8 }}>
-                ✓ 300 DPI transparent PNG<br/>
-                ✓ Commercial / POD license<br/>
-                ✓ Instant digital download<br/>
-                ✓ Works with Printify, Printful
+
+              {/* Shop */}
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 16, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Shop</div>
+                {[
+                  ['All Designs', '/shop'],
+                  ['Western', '/shop?category=western'],
+                  ['Christmas', '/shop?category=christmas'],
+                  ['Mama Designs', '/shop?category=mama'],
+                  ['Sports & Teams', '/shop?category=sports-and-teams'],
+                  ['Tumbler Wraps', '/shop?category=tumbler-wraps'],
+                ].map(([label, href]) => (
+                  <a key={href} href={href} style={{ display: 'block', fontSize: 14, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', marginBottom: 10, transition: 'color 0.15s' }}
+  >
+                    {label}
+                  </a>
+                ))}
+              </div>
+
+              {/* Info */}
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 16, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Info</div>
+                {[
+                  ['License Info', '/license'],
+                  ['FAQ', '/faq'],
+                  ['Contact Us', '/contact'],
+                  ['Refund Policy', '/refund'],
+                ].map(([label, href]) => (
+                  <a key={href} href={href} style={{ display: 'block', fontSize: 14, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', marginBottom: 10 }}>{label}</a>
+                ))}
+              </div>
+
+              {/* File Details */}
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 16, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>File Details</div>
+                {[
+                  '✓ 300 DPI PNG',
+                  '✓ Transparent background',
+                  '✓ Commercial license',
+                  '✓ Instant download',
+                  '✓ Works with Printify',
+                  '✓ Works with Printful',
+                ].map((item, i) => (
+                  <div key={i} style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>{item}</div>
+                ))}
               </div>
             </div>
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 32, fontSize: 12, color: 'var(--text-muted)' }}>
-            © {new Date().getFullYear()} Tiklife. All rights reserved.
+
+            {/* Bottom bar */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+                © {new Date().getFullYear()} Tiklife. All rights reserved.
+              </div>
+              <div style={{ display: 'flex', gap: 20 }}>
+                {[['License', '/license'], ['FAQ', '/faq'], ['Refund', '/refund'], ['Contact', '/contact']].map(([label, href]) => (
+                  <a key={href} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>{label}</a>
+                ))}
+              </div>
+            </div>
           </div>
         </footer>
+
       </body>
     </html>
   )
