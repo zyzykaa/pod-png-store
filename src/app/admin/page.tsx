@@ -232,6 +232,7 @@ export default function AdminPage() {
   }
 
   function handleTitleChange(val: string) {
+    val = cleanTitle(val)
     const autoCategory = detectCategory(val)
     const autoTags = generateTags(val)
     const autoDesc = generateDescription(val, autoCategory)
