@@ -32,7 +32,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: { preview_url: data.publicUrl } })
     }
 
-    // Upload 1 variation design file
+    // Upload design file (ZIP hoac PNG)
+    if (type === 'design') {
+      const file = formData.get('file') as File
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'zip'
+      const contentType = ext === 'zip' ? 'application/zip' : file.type
+      const designPath = `${slug}.${ext}`
+      const { error } = await supabaseAdmin.storage
+        .from('designs')
+        .upload(designPath, buffer, { contentType, upsert: true })
+      if (error) throw new Error(error.message)
+      return NextResponse.json({ data: { file_path: designPath } })
+    }
+
+    // Upload variation design file
     if (type === 'variation') {
       const file = formData.get('file') as File
       const varIndex = formData.get('var_index') as string // '0', '1', '2'...

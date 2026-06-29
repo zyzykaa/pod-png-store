@@ -128,8 +128,7 @@ export default function AdminPage() {
 
   // Upload state
   const [form, setForm] = useState<FormState>(defaultForm)
-  const [designFile, setDesignFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>('')   // preview da co watermark
+    const [previewUrl, setPreviewUrl] = useState<string>('')   // preview da co watermark
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null)
   const [uploading, setUploading] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
@@ -142,8 +141,6 @@ export default function AdminPage() {
 
   const designRef = useRef<HTMLInputElement>(null)
   const previewBoxRef = useRef<HTMLDivElement>(null)
-  const varRefs = useRef<(HTMLInputElement | null)[]>([])
-
   // Xu ly paste anh tu clipboard (Ctrl+V hoac screenshot)
   useEffect(() => {
     async function handlePaste(e: ClipboardEvent) {
@@ -170,10 +167,7 @@ export default function AdminPage() {
   const [pastedPreview, setPastedPreview] = useState<Blob | null>(null)
   const [pastedPreviewUrl, setPastedPreviewUrl] = useState('')
 
-  // Variations state
-  const [variations, setVariations] = useState([
-    { label: 'Main', file: null as File | null, previewUrl: '' }
-  ])
+  const [designFile, setDesignFile] = useState<File | null>(null)
 
   // Bulk upload state
   const [bulkProducts, setBulkProducts] = useState([
@@ -249,38 +243,8 @@ export default function AdminPage() {
     }))
   }
 
-  async function handleVariationFile(idx: number, file: File) {
-    const ext = file.name.split('.').pop()?.toLowerCase()
-    const isImg = ['png','jpg','jpeg','webp'].includes(ext || '')
-    const localUrl = isImg ? URL.createObjectURL(file) : ''
-
-    setVariations(v => v.map((x, i) => i === idx ? { ...x, file, previewUrl: localUrl } : x))
-
-    // Variation dau tien -> tao watermark preview
-    if (idx === 0 && isImg) {
-      setPreviewUrl('')
-      setPreviewBlob(null)
-      setSuccessMsg('')
-      setErrorMsg('')
-      try {
-        log('Dang tao preview voi watermark...')
-        const blob = await createWatermarkedPreview(file)
-        setPreviewBlob(blob)
-        setPreviewUrl(URL.createObjectURL(blob))
-        log('Preview san sang!')
-      } catch (e: any) {
-        setErrorMsg('Khong tao duoc preview: ' + e.message)
-      }
-    }
-  }
-
-  function addVariation() {
-    setVariations(v => [...v, { label: '', file: null, previewUrl: '' }])
-  }
-
-  function removeVariation(idx: number) {
-    if (variations.length === 1) return
-    setVariations(v => v.filter((_, i) => i !== idx))
+  function handleDesignFile(file: File) {
+    setDesignFile(file)
   }
 
   async function uploadFile(blob: Blob | File, type: string, slug: string): Promise<string> {
@@ -303,30 +267,22 @@ export default function AdminPage() {
     if (!form.slug || !form.title || !form.price) {
       setErrorMsg('Vui long dien: Ten, Slug, Gia'); return
     }
-    if (!variations[0]?.file) { setErrorMsg('Chua chon file design'); return }
+    if (!designFile) { setErrorMsg('Chua chon file design'); return }
     if (!previewBlob) { setErrorMsg('Chua co preview'); return }
 
     setUploading(true)
     try {
-      // Upload tung variation
-      log(`Upload ${variations.length} variation(s)...`)
-      const variationPaths: {label: string, path: string}[] = []
-      for (let i = 0; i < variations.length; i++) {
-        const v = variations[i]
-        if (!v.file) continue
-        const fd2 = new FormData()
-        fd2.append('file', v.file, v.file.name)
-        fd2.append('type', 'variation')
-        fd2.append('slug', form.slug)
-        fd2.append('var_index', i.toString())
-        fd2.append('var_label', v.label || `v${i+1}`)
-        const r = await fetch('/api/admin/upload', { method: 'POST', headers: { 'x-admin-key': adminKey }, body: fd2 })
-        const d = await r.json()
-        if (!r.ok) throw new Error(d.error)
-        variationPaths.push({ label: v.label || `v${i+1}`, path: d.data.file_path })
-        log(`Upload variation ${i+1} OK`)
-      }
-      const filePath = variationPaths[0]?.path || ''
+      if (!designFile) throw new Error('Chua chon file design')
+      log('Uploading design file...')
+      const fd2 = new FormData()
+      fd2.append('file', designFile, designFile.name)
+      fd2.append('type', 'design')
+      fd2.append('slug', form.slug)
+      const r2 = await fetch('/api/admin/upload', { method: 'POST', headers: { 'x-admin-key': adminKey }, body: fd2 })
+      const d2 = await r2.json()
+      if (!r2.ok) throw new Error(d2.error)
+      const filePath = d2.data.file_path
+      log('Design uploaded: ' + filePath)
 
       // Uu tien pasted preview, neu khong co thi dung auto watermark
       const finalPreview = pastedPreview || previewBlob
@@ -349,8 +305,9 @@ export default function AdminPage() {
           mockup_urls: [],
           file_info: {
             dpi: parseInt(form.file_info_dpi) || 300,
-            format: 'PNG', size: form.file_info_size,
-            includes: variations.filter(v => v.file).map(v => `PNG - ${v.label || 'Main'}`),
+            format: designFile?.name.endsWith('.zip') ? 'ZIP' : 'PNG',
+            size: form.file_info_size,
+            includes: designFile?.name.endsWith('.zip') ? ['ZIP file with all variations'] : ['PNG transparent'],
           },
           is_featured: form.is_featured,
         }),
@@ -361,7 +318,7 @@ export default function AdminPage() {
       log('Thanh cong!')
       setSuccessMsg(`"${form.title}" da them vao shop!`)
       setForm(defaultForm)
-      setVariations([{ label: 'Main', file: null, previewUrl: '' }])
+      setDesignFile(null)
       setPastedPreview(null)
       setPastedPreviewUrl('')
       setPreviewUrl('')
@@ -439,72 +396,48 @@ export default function AdminPage() {
         {tab === 'upload' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
 
-            {/* LEFT: Variations */}
+            {/* LEFT: Design file + Preview */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#555' }}>
-                  Design Files ({variations.length})
-                </span>
-                <button onClick={addVariation} style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6, border: '1.5px solid var(--brand)', background: 'white', color: 'var(--brand)', cursor: 'pointer', fontWeight: 600 }}>
-                  + Add Variation
-                </button>
+
+              {/* ZIP / PNG upload */}
+              <div
+                onClick={() => designRef.current?.click()}
+                style={{
+                  background: 'white', borderRadius: 14,
+                  border: designFile ? '2px solid #16a34a' : '2px dashed #e5e5e5',
+                  cursor: 'pointer', minHeight: 140,
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  padding: 24, textAlign: 'center', gap: 10,
+                }}>
+                <input ref={designRef} type="file" accept=".zip,.png,.jpg,.jpeg,.webp" hidden
+                  onChange={e => e.target.files?.[0] && handleDesignFile(e.target.files[0])} />
+                {designFile ? (
+                  <>
+                    <div style={{ fontSize: 36 }}>{designFile.name.endsWith('.zip') ? '🗜️' : '🎨'}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#16a34a' }}>{designFile.name}</div>
+                    <div style={{ fontSize: 12, color: '#888' }}>
+                      {(designFile.size / 1024 / 1024).toFixed(1)} MB · Click to change
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 40 }}>📦</div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>Upload Design File</div>
+                    <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>
+                      Drop <strong>ZIP</strong> (all variations inside)<br/>
+                      or single <strong>PNG/JPG</strong>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {variations.map((v, idx) => (
-                <div key={idx} style={{ background: 'white', borderRadius: 14, border: v.file ? '2px solid #16a34a' : '2px dashed #e5e5e5', overflow: 'hidden' }}>
-                  {/* Label row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid #f0f0f0' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#888', minWidth: 60 }}>
-                      {idx === 0 ? 'MAIN' : `VAR ${idx}`}
-                    </span>
-                    <input
-                      value={v.label}
-                      onChange={e => setVariations(vs => vs.map((x, i) => i === idx ? { ...x, label: e.target.value } : x))}
-                      placeholder={idx === 0 ? 'e.g. Dark Version' : 'e.g. Light Version'}
-                      style={{ flex: 1, height: 32, padding: '0 10px', border: '1px solid #e5e5e5', borderRadius: 6, fontSize: 12 }}
-                    />
-                    {idx > 0 && (
-                      <button onClick={() => removeVariation(idx)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
-                    )}
-                  </div>
-
-                  {/* Drop zone */}
-                  <div
-                    onClick={() => { varRefs.current[idx] = varRefs.current[idx]; varRefs.current[idx]?.click() }}
-                    style={{ cursor: 'pointer', minHeight: idx === 0 ? 220 : 120, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                    <input
-                      type="file" accept=".png,.jpg,.jpeg,.webp" hidden
-                      ref={el => { varRefs.current[idx] = el }}
-                      onChange={e => e.target.files?.[0] && handleVariationFile(idx, e.target.files[0])}
-                    />
-                    {v.file ? (
-                      <>
-                        {v.previewUrl && <img src={v.previewUrl} alt={v.label} style={{ width: '100%', height: idx === 0 ? 220 : 120, objectFit: 'contain' }} />}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(22,163,74,0.88)', color: 'white', padding: '6px 10px', fontSize: 11, fontWeight: 600, textAlign: 'center' }}>
-                          {v.file.name} · Click to change
-                        </div>
-                      </>
-                    ) : (
-                      <div style={{ textAlign: 'center', padding: 20 }}>
-                        <div style={{ fontSize: idx === 0 ? 40 : 28, marginBottom: 8 }}>🎨</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#888' }}>
-                          {idx === 0 ? 'Click to upload main design' : 'Click to upload variation'}
-                        </div>
-                        <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>PNG, JPG, WEBP</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* Preview box - paste hoac tu dong tao watermark */}
-              <div
-                ref={previewBoxRef}
-                style={{
-                  background: 'white', borderRadius: 12, overflow: 'hidden',
-                  border: pastedPreviewUrl ? '2px solid #6366f1' : '2px dashed #e5e5e5',
-                  minHeight: 120,
-                }}>
+              {/* Preview box */}
+              <div style={{
+                background: 'white', borderRadius: 12, overflow: 'hidden',
+                border: pastedPreviewUrl ? '2px solid #6366f1' : '2px dashed #e5e5e5',
+                minHeight: 100,
+              }}>
                 <div style={{
                   padding: '8px 12px', fontSize: 11, fontWeight: 700,
                   color: pastedPreviewUrl ? '#6366f1' : '#aaa',
@@ -512,61 +445,29 @@ export default function AdminPage() {
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   textTransform: 'uppercase', letterSpacing: '0.05em',
                 }}>
-                  <span>{pastedPreviewUrl ? 'Preview (Pasted)' : previewUrl ? 'Preview (Auto Watermark)' : 'Preview'}</span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {pastedPreviewUrl && (
-                      <button
-                        onClick={() => {
-                          setPastedPreview(null)
-                          setPastedPreviewUrl('')
-                          // Fallback ve watermark tu dong neu co file
-                          if (variations[0]?.file) {
-                            createWatermarkedPreview(variations[0].file).then(blob => {
-                              setPreviewBlob(blob)
-                              setPreviewUrl(URL.createObjectURL(blob))
-                            })
-                          } else {
-                            setPreviewBlob(null)
-                            setPreviewUrl('')
-                          }
-                        }}
-                        style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid #e5e5e5', background: 'white', cursor: 'pointer', color: '#888' }}>
-                        Use Auto
-                      </button>
-                    )}
-                  </div>
+                  <span>{pastedPreviewUrl ? '📋 Preview (Pasted)' : '🖼️ Preview Image'}</span>
+                  {pastedPreviewUrl && (
+                    <button onClick={() => { setPastedPreview(null); setPastedPreviewUrl(''); setPreviewBlob(null); setPreviewUrl('') }}
+                      style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, border: '1px solid #e5e5e5', background: 'white', cursor: 'pointer', color: '#888' }}>
+                      Clear
+                    </button>
+                  )}
                 </div>
-
                 {pastedPreviewUrl || previewUrl ? (
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src={pastedPreviewUrl || previewUrl}
-                      alt="preview"
-                      style={{ width: '100%', maxHeight: 220, objectFit: 'contain' }}
-                    />
-                    {pastedPreviewUrl && (
-                      <div style={{
-                        position: 'absolute', top: 6, right: 6,
-                        background: '#6366f1', color: 'white',
-                        fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
-                      }}>
-                        PASTED
-                      </div>
-                    )}
-                  </div>
+                  <img src={pastedPreviewUrl || previewUrl} alt="preview"
+                    style={{ width: '100%', maxHeight: 240, objectFit: 'contain' }} />
                 ) : (
-                  <div style={{ padding: 20, textAlign: 'center', color: '#bbb' }}>
-                    <div style={{ fontSize: 28, marginBottom: 6 }}>📋</div>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>
-                      Press <kbd style={{ background: '#f0f0f0', padding: '2px 6px', borderRadius: 4, color: '#555', fontFamily: 'monospace' }}>Ctrl+V</kbd> to paste screenshot
+                  <div style={{ padding: 24, textAlign: 'center', color: '#ccc' }}>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#bbb' }}>
+                      Press <kbd style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: 4, color: '#666', fontFamily: 'monospace', fontSize: 11 }}>Ctrl+V</kbd> to paste screenshot
                     </div>
-                    <div style={{ fontSize: 11, color: '#ccc', marginTop: 4 }}>
-                      or upload a design above to auto-generate
-                    </div>
+                    <div style={{ fontSize: 11, color: '#ddd', marginTop: 4 }}>This will be shown to customers</div>
                   </div>
                 )}
               </div>
 
+              {/* Logs */}
               {logs.length > 0 && (
                 <div style={{ background: 'white', borderRadius: 10, padding: '12px 16px' }}>
                   {logs.map((l, i) => <div key={i} style={{ fontSize: 12, color: '#666', lineHeight: 1.8 }}>{l}</div>)}
