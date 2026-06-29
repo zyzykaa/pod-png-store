@@ -12,40 +12,44 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData()
-    const file = formData.get('file') as File
     const type = formData.get('type') as string
     const slug = formData.get('slug') as string
 
-    if (!file || !type || !slug) {
-      return NextResponse.json({ error: 'Missing file, type or slug' }, { status: 400 })
+    if (!type || !slug) {
+      return NextResponse.json({ error: 'Missing type or slug' }, { status: 400 })
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer())
-
-    if (type === 'design') {
-      // Luu file goc vao Supabase designs (private)
-      const ext = file.name.split('.').pop()?.toLowerCase()
-      const designPath = `${slug}.${ext}`
-      const { error } = await supabaseAdmin.storage
-        .from('designs')
-        .upload(designPath, buffer, { contentType: file.type, upsert: true })
-      if (error) throw new Error(error.message)
-      return NextResponse.json({ data: { file_path: designPath } })
-    }
-
+    // Upload preview (watermark da xu ly o client)
     if (type === 'preview') {
-      // Upload preview JPEG len Supabase previews (public bucket)
+      const file = formData.get('file') as File
+      const buffer = Buffer.from(await file.arrayBuffer())
       const previewPath = `${slug}-preview.jpg`
       const { error } = await supabaseAdmin.storage
         .from('previews')
         .upload(previewPath, buffer, { contentType: 'image/jpeg', upsert: true })
       if (error) throw new Error(error.message)
-
-      const { data } = supabaseAdmin.storage
-        .from('previews')
-        .getPublicUrl(previewPath)
-
+      const { data } = supabaseAdmin.storage.from('previews').getPublicUrl(previewPath)
       return NextResponse.json({ data: { preview_url: data.publicUrl } })
+    }
+
+    // Upload 1 variation design file
+    if (type === 'variation') {
+      const file = formData.get('file') as File
+      const varIndex = formData.get('var_index') as string // '0', '1', '2'...
+      const varLabel = formData.get('var_label') as string // 'Dark', 'Light', 'Color'
+
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+      // Path: slug-v0-dark.png, slug-v1-light.png
+      const labelSlug = varLabel.toLowerCase().replace(/\s+/g, '-')
+      const designPath = `${slug}-v${varIndex}-${labelSlug}.${ext}`
+
+      const { error } = await supabaseAdmin.storage
+        .from('designs')
+        .upload(designPath, buffer, { contentType: file.type, upsert: true })
+      if (error) throw new Error(error.message)
+
+      return NextResponse.json({ data: { file_path: designPath, var_index: varIndex, var_label: varLabel } })
     }
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
