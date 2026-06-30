@@ -62,7 +62,7 @@ export default async function ProductPage({ params }: Props) {
         <span style={{ color: 'var(--text)' }}>{product.title.split('|')[0].trim()}</span>
       </nav>
 
-      <div className='product-layout' style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 48, alignItems: 'start' }}>
+      <div className='product-layout' style={{ display: 'grid', gridTemplateColumns: '55% 45%', gap: 48, alignItems: 'start' }}>
         {/* Left: Images - client component để dùng event handlers */}
         <div>
           <ProductImage previewUrl={product.preview_url} title={product.title} />
