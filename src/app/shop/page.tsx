@@ -231,7 +231,7 @@ function ShopContent() {
         {/* Products */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {loading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+            <div className="product-grid">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
                   <div style={{ aspectRatio: '1', background: 'linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%)', backgroundSize: '200% 100%' }} />
@@ -255,9 +255,9 @@ function ShopContent() {
           ) : (
             <>
               {/* Sort bar (top of results) */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                  Showing {Math.min((page - 1) * 24 + 1, total)}–{Math.min(page * 24, total)} of {total}
+                  {total.toLocaleString()} designs
                 </span>
                 <select value={sort} onChange={e => updateParams({ sort: e.target.value })}
                   style={{

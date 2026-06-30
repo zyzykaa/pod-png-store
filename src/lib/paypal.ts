@@ -50,7 +50,7 @@ export async function createPayPalOrder(amount: number, orderId: string) {
             payment_method_preference: 'IMMEDIATE_PAYMENT_REQUIRED',
             brand_name: 'Tiklife',
             locale: 'en-US',
-            landing_page: 'LOGIN',
+            landing_page: 'NO_PREFERENCE',
             user_action: 'PAY_NOW',
             return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
             cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/cancel`,
