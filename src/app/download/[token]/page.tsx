@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import PostPurchaseUpsell from '@/components/shop/PostPurchaseUpsell'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -101,6 +102,9 @@ export default async function DownloadPage({ params }: Props) {
           <span>{order.paid_at ? new Date(order.paid_at).toLocaleString() : '—'}</span>
         </div>
       </div>
+
+      {/* Upsell: One-time offer */}
+      <PostPurchaseUpsell excludeIds={signed_urls.map((s: SignedUrl) => s.product_id)} />
 
       {/* Notice */}
       <div style={{

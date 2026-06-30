@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import ProductCheckout from '@/components/shop/ProductCheckout'
 import ProductImage from '@/components/shop/ProductImage'
+import RelatedProducts from '@/components/shop/RelatedProducts'
 import Link from 'next/link'
 
 interface Props {
@@ -106,6 +107,9 @@ export default async function ProductPage({ params }: Props) {
               Use for DTF transfers and sublimation
             </div>
           </div>
+
+          {/* Upsell: Frequently Bought Together */}
+          <RelatedProducts productId={product.id} category={product.category} currentPrice={product.price} />
         </div>
 
         {/* Right: Checkout */}
