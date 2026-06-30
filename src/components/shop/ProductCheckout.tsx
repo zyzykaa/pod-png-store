@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js'
+import { PayPalButtons, PayPalScriptProvider, FUNDING } from '@paypal/react-paypal-js'
 import { Product } from '@/types'
 import { useCart } from '@/hooks/useCart'
 
@@ -63,6 +63,7 @@ export default function ProductCheckout({ product }: Props) {
     <PayPalScriptProvider options={{
       clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
       currency: 'USD',
+      'enable-funding': 'card',
     }}>
       <div style={{
         border: '2px solid var(--border)',
@@ -157,14 +158,41 @@ export default function ProductCheckout({ product }: Props) {
                 Change
               </button>
             </div>
-            <PayPalButtons
-              style={{ layout: 'vertical', shape: 'rect', color: 'blue' }}
-              createOrder={createOrder}
-              onApprove={onApprove}
-              onError={() => {
-                alert('PayPal error. Please try again.')
-              }}
-            />
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Pay with PayPal account
+              </div>
+              <PayPalButtons
+                fundingSource={FUNDING.PAYPAL}
+                style={{ layout: 'vertical', shape: 'rect', color: 'blue' }}
+                createOrder={createOrder}
+                onApprove={onApprove}
+                onError={() => {
+                  alert('PayPal error. Please try again.')
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0' }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>or</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Pay with Debit or Credit Card
+              </div>
+              <PayPalButtons
+                fundingSource={FUNDING.CARD}
+                style={{ layout: 'vertical', shape: 'rect', color: 'black', label: 'pay' }}
+                createOrder={createOrder}
+                onApprove={onApprove}
+                onError={() => {
+                  alert('PayPal error. Please try again.')
+                }}
+              />
+            </div>
           </div>
         )}
 
