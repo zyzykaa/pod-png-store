@@ -11,6 +11,7 @@ export default function ProductImage({ previewUrl, title }: Props) {
       style={{
         background: '#f5f5f7', borderRadius: 16, overflow: 'hidden',
         marginBottom: 16, position: 'relative', aspectRatio: '1',
+        maxWidth: 520, width: '100%', margin: '0 auto 16px',
         userSelect: 'none',
       }}
       onContextMenu={e => e.preventDefault()}
