@@ -1,8 +1,8 @@
 // PayPal Orders API v2
 
-const PAYPAL_BASE_URL = process.env.PAYPAL_MODE === 'live'
-  ? 'https://api-m.paypal.com'
-  : 'https://api-m.sandbox.paypal.com'
+const PAYPAL_BASE_URL = process.env.PAYPAL_MODE === 'sandbox'
+  ? 'https://api-m.sandbox.paypal.com'
+  : 'https://api-m.paypal.com'
 
 // Lấy access token từ PayPal
 async function getPayPalAccessToken(): Promise<string> {
