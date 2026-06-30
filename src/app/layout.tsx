@@ -37,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <Analytics />
         <Navbar />
         <main>{children}</main>
         <footer style={{ borderTop: '1px solid var(--border)', paddingTop: 56, paddingBottom: 32, marginTop: 80, background: '#0f0c29', color: 'white' }}>
