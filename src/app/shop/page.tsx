@@ -77,7 +77,7 @@ function ShopContent() {
     priceRange !== '0' && { key: 'price', label: selectedPrice.label },
   ].filter(Boolean) as { key: string; label: string }[]
 
-  const SidebarContent = () => (
+  const renderSidebar = () => (
     <>
       {/* Categories */}
       <div style={{ marginBottom: 32 }}>
@@ -215,7 +215,7 @@ function ShopContent() {
       {/* Mobile filter panel */}
       {mobileFilterOpen && (
         <div style={{ background: 'white', borderRadius: 14, padding: 20, border: '1px solid #f0f0f0', marginBottom: 16 }}>
-          <SidebarContent />
+          {renderSidebar()}
         </div>
       )}
       <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
@@ -225,7 +225,7 @@ function ShopContent() {
           background: 'white', borderRadius: 14, padding: 20,
           border: '1px solid #f0f0f0',
         }}>
-          <SidebarContent />
+          {renderSidebar()}
         </aside>
 
         {/* Products */}
