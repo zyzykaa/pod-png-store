@@ -37,26 +37,13 @@ export async function createPayPalOrder(amount: number, orderId: string) {
     body: JSON.stringify({
       intent: 'CAPTURE',
       purchase_units: [{
-        reference_id: orderId,         // ID đơn hàng trong DB của mình
+        reference_id: orderId,
         amount: {
           currency_code: 'USD',
           value: amount.toFixed(2),
         },
         description: 'PNG Design Digital Download',
       }],
-      payment_source: {
-        paypal: {
-          experience_context: {
-            payment_method_preference: 'IMMEDIATE_PAYMENT_REQUIRED',
-            brand_name: 'Tiklife',
-            locale: 'en-US',
-            landing_page: 'NO_PREFERENCE',
-            user_action: 'PAY_NOW',
-            return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
-            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/cancel`,
-          }
-        }
-      }
     }),
   })
 
