@@ -261,15 +261,26 @@ export default function AdminPage() {
 
     const { signedUrl, key } = urlData
 
+    // Log domain để debug (xóa sau khi xác nhận hoạt động)
+    try {
+      const urlHost = new URL(signedUrl).hostname
+      log(`R2 endpoint: ${urlHost}`)
+    } catch {}
+
     log('Uploading thẳng lên R2...')
-    const uploadRes = await fetch(signedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
-      body: file,
-    })
+    let uploadRes: Response
+    try {
+      uploadRes = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      })
+    } catch (fetchErr: any) {
+      throw new Error(`Không kết nối được R2 (CORS hoặc URL sai): ${fetchErr.message}. Kiểm tra CORS trong Cloudflare R2 Dashboard và env vars CLOUDFLARE_R2_* trong Vercel.`)
+    }
     if (!uploadRes.ok) {
       const errText = await uploadRes.text()
-      throw new Error(`R2 upload thất bại (${uploadRes.status}): ${errText.slice(0, 120)}`)
+      throw new Error(`R2 upload thất bại (${uploadRes.status}): ${errText.slice(0, 200)}`)
     }
 
     return key
