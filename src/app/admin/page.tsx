@@ -192,6 +192,46 @@ export default function AdminPage() {
   }
 
 
+  // Upload file trực tiếp lên Supabase Storage qua presigned URL (bỏ qua Vercel 4.5MB limit)
+  async function uploadFileDirect(
+    file: Blob | File,
+    type: string,
+    slug: string,
+    filename?: string,
+    varIndex?: number,
+    varLabel?: string,
+  ): Promise<string> {
+    const fname = filename || (file instanceof File ? file.name : type === 'preview' ? 'preview.jpg' : 'design.bin')
+
+    log('Lấy presigned URL...')
+    const urlRes = await fetch('/api/admin/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ type, slug, filename: fname, var_index: varIndex, var_label: varLabel }),
+    })
+    const urlData = await safeJson(urlRes)
+    if (!urlRes.ok) throw new Error(urlData.error)
+
+    const { signedUrl, path, bucket } = urlData
+
+    log('Uploading thẳng lên Supabase...')
+    const contentType = type === 'preview' ? 'image/jpeg' : (file instanceof File ? file.type : 'application/octet-stream')
+    const uploadRes = await fetch(signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType, 'x-upsert': 'true' },
+      body: file,
+    })
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text()
+      throw new Error(`Upload thất bại (${uploadRes.status}): ${errText.slice(0, 120)}`)
+    }
+
+    if (type === 'preview') {
+      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`
+    }
+    return path
+  }
+
   // Auto generate tags tu title
   function generateTags(title: string): string {
     const t = title.toLowerCase()
@@ -308,25 +348,16 @@ export default function AdminPage() {
     setUploading(true)
     try {
       if (!designFile) throw new Error('Chua chon file design')
-      if (designFile.size > 4 * 1024 * 1024) {
-        throw new Error(`File quá lớn: ${(designFile.size / 1024 / 1024).toFixed(1)}MB. Vercel giới hạn 4.5MB — hãy nén ZIP hoặc giảm kích thước ảnh.`)
-      }
+
       log('Uploading design file...')
-      const fd2 = new FormData()
-      fd2.append('file', designFile, designFile.name)
-      fd2.append('type', 'design')
-      fd2.append('slug', form.slug)
-      const r2 = await fetch('/api/admin/upload', { method: 'POST', headers: { 'x-admin-key': adminKey }, body: fd2 })
-      const d2 = await safeJson(r2)
-      if (!r2.ok) throw new Error(d2.error)
-      const filePath = d2.data.file_path
+      const filePath = await uploadFileDirect(designFile, 'design', form.slug, designFile.name)
       log('Design uploaded: ' + filePath)
 
       // Uu tien pasted preview, neu khong co thi dung auto watermark
       const finalPreview = pastedPreview || previewBlob
       if (!finalPreview) throw new Error('Chua co preview')
       log('Upload preview...')
-      const pUrl = await uploadFile(finalPreview, 'preview', form.slug)
+      const pUrl = await uploadFileDirect(finalPreview, 'preview', form.slug, 'preview.jpg')
       log('Upload preview OK!')
 
       log('Luu vao database...')
