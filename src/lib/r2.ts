@@ -10,13 +10,12 @@ export const r2 = new S3Client({
   },
 })
 
-export async function createR2UploadUrl(key: string, contentType: string): Promise<string> {
+export async function createR2UploadUrl(key: string): Promise<string> {
   return getSignedUrl(
     r2,
     new PutObjectCommand({
       Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
       Key: key,
-      ContentType: contentType,
     }),
     { expiresIn: 3600 }
   )

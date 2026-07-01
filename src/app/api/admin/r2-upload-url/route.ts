@@ -46,8 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
     }
 
-    const contentType = CONTENT_TYPES[ext] || 'application/octet-stream'
-    const signedUrl = await createR2UploadUrl(key, contentType)
+    const signedUrl = await createR2UploadUrl(key)
 
     return NextResponse.json({ signedUrl, key })
   } catch (err: any) {
