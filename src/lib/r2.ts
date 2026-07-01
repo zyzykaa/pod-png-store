@@ -8,6 +8,7 @@ export const r2 = new S3Client({
     accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
   },
+  forcePathStyle: true,
 })
 
 export async function createR2UploadUrl(key: string): Promise<string> {
