@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"⚠️  NHẮC NHỞ: Hãy merge PR #1 trên GitHub để deploy lên production!\\nhttps://github.com/zyzykaa/pod-png-store/pull/1\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}

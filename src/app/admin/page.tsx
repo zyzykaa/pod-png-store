@@ -180,6 +180,57 @@ export default function AdminPage() {
 
   function log(msg: string) { setLogs(p => [...p, msg]) }
 
+  // Đọc response an toàn — Vercel có thể trả text thô (413, 502...) thay vì JSON
+  async function safeJson(res: Response) {
+    const text = await res.text()
+    if (res.status === 413) throw new Error('File quá lớn (giới hạn 4.5MB trên Vercel Hobby). Hãy nén ZIP hoặc giảm kích thước ảnh.')
+    try {
+      return JSON.parse(text)
+    } catch {
+      throw new Error(`Lỗi server ${res.status}: ${text.slice(0, 120)}`)
+    }
+  }
+
+
+  // Upload file trực tiếp lên Supabase Storage qua presigned URL (bỏ qua Vercel 4.5MB limit)
+  async function uploadFileDirect(
+    file: Blob | File,
+    type: string,
+    slug: string,
+    filename?: string,
+    varIndex?: number,
+    varLabel?: string,
+  ): Promise<string> {
+    const fname = filename || (file instanceof File ? file.name : type === 'preview' ? 'preview.jpg' : 'design.bin')
+
+    log('Lấy presigned URL...')
+    const urlRes = await fetch('/api/admin/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ type, slug, filename: fname, var_index: varIndex, var_label: varLabel }),
+    })
+    const urlData = await safeJson(urlRes)
+    if (!urlRes.ok) throw new Error(urlData.error)
+
+    const { signedUrl, path, bucket } = urlData
+
+    log('Uploading thẳng lên Supabase...')
+    const contentType = type === 'preview' ? 'image/jpeg' : (file instanceof File ? file.type : 'application/octet-stream')
+    const uploadRes = await fetch(signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType, 'x-upsert': 'true' },
+      body: file,
+    })
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text()
+      throw new Error(`Upload thất bại (${uploadRes.status}): ${errText.slice(0, 120)}`)
+    }
+
+    if (type === 'preview') {
+      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`
+    }
+    return path
+  }
 
   // Auto generate tags tu title
   function generateTags(title: string): string {
@@ -281,7 +332,7 @@ export default function AdminPage() {
       headers: { 'x-admin-key': adminKey },
       body: fd,
     })
-    const data = await res.json()
+    const data = await safeJson(res)
     if (!res.ok) throw new Error(data.error)
     return type === 'design' ? data.data.file_path : data.data.preview_url
   }
@@ -297,22 +348,16 @@ export default function AdminPage() {
     setUploading(true)
     try {
       if (!designFile) throw new Error('Chua chon file design')
+
       log('Uploading design file...')
-      const fd2 = new FormData()
-      fd2.append('file', designFile, designFile.name)
-      fd2.append('type', 'design')
-      fd2.append('slug', form.slug)
-      const r2 = await fetch('/api/admin/upload', { method: 'POST', headers: { 'x-admin-key': adminKey }, body: fd2 })
-      const d2 = await r2.json()
-      if (!r2.ok) throw new Error(d2.error)
-      const filePath = d2.data.file_path
+      const filePath = await uploadFileDirect(designFile, 'design', form.slug, designFile.name)
       log('Design uploaded: ' + filePath)
 
       // Uu tien pasted preview, neu khong co thi dung auto watermark
       const finalPreview = pastedPreview || previewBlob
       if (!finalPreview) throw new Error('Chua co preview')
       log('Upload preview...')
-      const pUrl = await uploadFile(finalPreview, 'preview', form.slug)
+      const pUrl = await uploadFileDirect(finalPreview, 'preview', form.slug, 'preview.jpg')
       log('Upload preview OK!')
 
       log('Luu vao database...')
@@ -336,7 +381,7 @@ export default function AdminPage() {
           is_featured: form.is_featured,
         }),
       })
-      const result = await res.json()
+      const result = await safeJson(res)
       if (!res.ok) throw new Error(result.error)
 
       log('Thanh cong!')
