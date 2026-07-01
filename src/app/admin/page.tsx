@@ -180,6 +180,17 @@ export default function AdminPage() {
 
   function log(msg: string) { setLogs(p => [...p, msg]) }
 
+  // Đọc response an toàn — Vercel có thể trả text thô (413, 502...) thay vì JSON
+  async function safeJson(res: Response) {
+    const text = await res.text()
+    if (res.status === 413) throw new Error('File quá lớn (giới hạn 4.5MB trên Vercel Hobby). Hãy nén ZIP hoặc giảm kích thước ảnh.')
+    try {
+      return JSON.parse(text)
+    } catch {
+      throw new Error(`Lỗi server ${res.status}: ${text.slice(0, 120)}`)
+    }
+  }
+
 
   // Auto generate tags tu title
   function generateTags(title: string): string {
@@ -281,7 +292,7 @@ export default function AdminPage() {
       headers: { 'x-admin-key': adminKey },
       body: fd,
     })
-    const data = await res.json()
+    const data = await safeJson(res)
     if (!res.ok) throw new Error(data.error)
     return type === 'design' ? data.data.file_path : data.data.preview_url
   }
@@ -297,13 +308,16 @@ export default function AdminPage() {
     setUploading(true)
     try {
       if (!designFile) throw new Error('Chua chon file design')
+      if (designFile.size > 4 * 1024 * 1024) {
+        throw new Error(`File quá lớn: ${(designFile.size / 1024 / 1024).toFixed(1)}MB. Vercel giới hạn 4.5MB — hãy nén ZIP hoặc giảm kích thước ảnh.`)
+      }
       log('Uploading design file...')
       const fd2 = new FormData()
       fd2.append('file', designFile, designFile.name)
       fd2.append('type', 'design')
       fd2.append('slug', form.slug)
       const r2 = await fetch('/api/admin/upload', { method: 'POST', headers: { 'x-admin-key': adminKey }, body: fd2 })
-      const d2 = await r2.json()
+      const d2 = await safeJson(r2)
       if (!r2.ok) throw new Error(d2.error)
       const filePath = d2.data.file_path
       log('Design uploaded: ' + filePath)
@@ -336,7 +350,7 @@ export default function AdminPage() {
           is_featured: form.is_featured,
         }),
       })
-      const result = await res.json()
+      const result = await safeJson(res)
       if (!res.ok) throw new Error(result.error)
 
       log('Thanh cong!')
