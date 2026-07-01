@@ -12,9 +12,13 @@ export default function Navbar() {
       <style>{`
         .nav-desktop { display: flex; }
         .nav-hamburger { display: none !important; }
+        .nav-tagline { display: flex; }
+        .nav-browse-btn { display: flex; }
         @media (max-width: 768px) {
           .nav-desktop { display: none !important; }
           .nav-hamburger { display: flex !important; }
+          .nav-tagline { display: none !important; }
+          .nav-browse-btn { display: none !important; }
         }
       `}</style>
 
@@ -30,7 +34,7 @@ export default function Navbar() {
             <span style={{ fontWeight: 900, fontSize: 22, color: '#1a1a2e', letterSpacing: '-0.5px', lineHeight: 1 }}>
               tik<span style={{ color: '#e94560' }}>life</span>
             </span>
-            <span style={{
+            <span className="nav-tagline" style={{
               fontSize: 11, fontWeight: 600, color: '#aaa',
               borderLeft: '1.5px solid #e5e5e5', paddingLeft: 10,
               lineHeight: 1.45,
@@ -54,12 +58,12 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Browse button */}
-          <Link href="/shop" style={{
+          {/* Browse button — ẩn trên mobile (có trong hamburger menu) */}
+          <Link href="/shop" className="nav-browse-btn" style={{
             height: 38, padding: '0 20px', borderRadius: 9,
             background: '#e94560', color: 'white',
             fontWeight: 700, fontSize: 13, textDecoration: 'none',
-            display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+            alignItems: 'center', gap: 4, flexShrink: 0,
           }}>
             Browse →
           </Link>

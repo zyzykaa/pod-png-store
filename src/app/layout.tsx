@@ -1,8 +1,13 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 import CartBar from '@/components/shop/CartBar'
 import { Analytics } from '@vercel/analytics/next'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://tiklife.shop'),
