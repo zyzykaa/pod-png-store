@@ -170,6 +170,7 @@ export default function AdminPage() {
   const [pastedPreviewUrl, setPastedPreviewUrl] = useState('')
 
   const [designFile, setDesignFile] = useState<File | null>(null)
+  const [uploadTarget, setUploadTarget] = useState<'supabase' | 'r2'>('r2')
 
   // Bulk upload state
   const [bulkProducts, setBulkProducts] = useState([
@@ -230,6 +231,48 @@ export default function AdminPage() {
       return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`
     }
     return path
+  }
+
+  // Upload file trực tiếp lên Cloudflare R2 qua presigned URL
+  async function uploadFileToR2(
+    file: File,
+    type: string,
+    slug: string,
+  ): Promise<string> {
+    const MAX_MB = 50
+    if (file.size > MAX_MB * 1024 * 1024) {
+      throw new Error(`File quá lớn (${(file.size / 1024 / 1024).toFixed(1)} MB). Giới hạn R2: ${MAX_MB} MB.`)
+    }
+
+    const ALLOWED = ['png', 'jpg', 'jpeg', 'svg', 'zip']
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    if (!ALLOWED.includes(ext)) {
+      throw new Error(`Loại file không hợp lệ (.${ext}). Chỉ chấp nhận: ${ALLOWED.join(', ')}`)
+    }
+
+    log('Lấy R2 presigned URL...')
+    const urlRes = await fetch('/api/admin/r2-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ type, slug, filename: file.name }),
+    })
+    const urlData = await safeJson(urlRes)
+    if (!urlRes.ok) throw new Error(urlData.error)
+
+    const { signedUrl, key } = urlData
+
+    log('Uploading thẳng lên R2...')
+    const uploadRes = await fetch(signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    })
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text()
+      throw new Error(`R2 upload thất bại (${uploadRes.status}): ${errText.slice(0, 120)}`)
+    }
+
+    return key
   }
 
   // Auto generate tags tu title
@@ -350,7 +393,9 @@ export default function AdminPage() {
       if (!designFile) throw new Error('Chua chon file design')
 
       log('Uploading design file...')
-      const filePath = await uploadFileDirect(designFile, 'design', form.slug, designFile.name)
+      const filePath = uploadTarget === 'r2'
+        ? await uploadFileToR2(designFile, 'design', form.slug)
+        : await uploadFileDirect(designFile, 'design', form.slug, designFile.name)
       log('Design uploaded: ' + filePath)
 
       // Uu tien pasted preview, neu khong co thi dung auto watermark
@@ -468,43 +513,64 @@ export default function AdminPage() {
             {/* LEFT: Design file + Preview */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
+              {/* Storage target toggle */}
+              <div style={{ background: 'white', borderRadius: 12, padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: 4 }}>Upload tới:</span>
+                {(['r2', 'supabase'] as const).map(t => (
+                  <button key={t} onClick={() => setUploadTarget(t)}
+                    style={{
+                      padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      fontWeight: 600, fontSize: 12,
+                      background: uploadTarget === t ? (t === 'r2' ? '#ea580c' : '#2563eb') : '#f3f4f6',
+                      color: uploadTarget === t ? 'white' : '#555',
+                      transition: 'all 0.15s',
+                    }}>
+                    {t === 'r2' ? 'Cloudflare R2 (≤50MB)' : 'Supabase (≤500MB bucket)'}
+                  </button>
+                ))}
+              </div>
+
               {/* ZIP / PNG upload - ho tro keo tha */}
               <div
                 onClick={() => designRef.current?.click()}
-                onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#e94560'; e.currentTarget.style.background = '#fff5f6' }}
-                onDragLeave={e => { e.currentTarget.style.borderColor = designFile ? '#16a34a' : '#e5e5e5'; e.currentTarget.style.background = 'white' }}
+                onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = uploadTarget === 'r2' ? '#ea580c' : '#e94560'; e.currentTarget.style.background = uploadTarget === 'r2' ? '#fff7ed' : '#fff5f6' }}
+                onDragLeave={e => { e.currentTarget.style.borderColor = designFile ? '#16a34a' : (uploadTarget === 'r2' ? '#fed7aa' : '#e5e5e5'); e.currentTarget.style.background = 'white' }}
                 onDrop={e => {
                   e.preventDefault()
-                  e.currentTarget.style.borderColor = designFile ? '#16a34a' : '#e5e5e5'
+                  e.currentTarget.style.borderColor = designFile ? '#16a34a' : (uploadTarget === 'r2' ? '#fed7aa' : '#e5e5e5')
                   e.currentTarget.style.background = 'white'
                   const file = e.dataTransfer.files?.[0]
                   if (file) handleDesignFile(file)
                 }}
                 style={{
                   background: 'white', borderRadius: 14,
-                  border: designFile ? '2px solid #16a34a' : '2px dashed #e5e5e5',
+                  border: designFile ? '2px solid #16a34a' : (uploadTarget === 'r2' ? '2px dashed #fed7aa' : '2px dashed #e5e5e5'),
                   cursor: 'pointer', minHeight: 160,
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
                   padding: 24, textAlign: 'center', gap: 10,
                   transition: 'all 0.15s',
                 }}>
-                <input ref={designRef} type="file" accept=".zip,.png,.jpg,.jpeg,.webp" hidden
+                <input ref={designRef} type="file" accept=".zip,.png,.jpg,.jpeg,.svg" hidden
                   onChange={e => e.target.files?.[0] && handleDesignFile(e.target.files[0])} />
                 {designFile ? (
                   <>
                     <div style={{ fontSize: 40 }}>{designFile.name.endsWith('.zip') ? '🗜️' : '🎨'}</div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#16a34a' }}>{designFile.name}</div>
                     <div style={{ fontSize: 12, color: '#888' }}>
-                      {(designFile.size / 1024 / 1024).toFixed(1)} MB · Click or drag to change
+                      {(designFile.size / 1024 / 1024).toFixed(1)} MB · Click hoặc kéo thả để đổi file
                     </div>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 44 }}>📦</div>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>Drop file here or click to browse</div>
+                    <div style={{ fontSize: 44 }}>{uploadTarget === 'r2' ? '☁️' : '📦'}</div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>
+                      {uploadTarget === 'r2' ? 'R2 Upload — Max 50MB' : 'Drop file here or click to browse'}
+                    </div>
                     <div style={{ fontSize: 13, color: '#aaa', lineHeight: 1.7 }}>
-                      <strong style={{ color: '#555' }}>ZIP</strong> (all variations) · <strong style={{ color: '#555' }}>PNG</strong> · JPG · WEBP
+                      {uploadTarget === 'r2'
+                        ? <><strong style={{ color: '#ea580c' }}>PNG · JPG · SVG · ZIP</strong> — Upload thẳng lên Cloudflare R2</>
+                        : <><strong style={{ color: '#555' }}>ZIP</strong> (all variations) · <strong style={{ color: '#555' }}>PNG</strong> · JPG · SVG</>}
                     </div>
                   </>
                 )}

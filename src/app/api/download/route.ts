@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, createDownloadSignedUrl } from '@/lib/supabase'
+import { createR2DownloadUrl } from '@/lib/r2'
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,7 +40,9 @@ export async function GET(request: NextRequest) {
     const signedUrls = await Promise.all(
       order.order_items.map(async (item: any) => {
         const product = item.product
-        const signedUrl = await createDownloadSignedUrl(product.file_path)
+        const signedUrl = product.file_path.startsWith('designs/')
+          ? await createR2DownloadUrl(product.file_path)
+          : await createDownloadSignedUrl(product.file_path)
 
         // Log download
         await supabaseAdmin.from('download_logs').insert({
