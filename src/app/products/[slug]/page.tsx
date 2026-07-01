@@ -50,7 +50,7 @@ export default async function ProductPage({ params }: Props) {
   return (
     <div className="container" style={{ paddingTop: 32, paddingBottom: 64 }}>
       {/* Breadcrumb */}
-      <nav style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, display: 'flex', gap: 8 }}>
+      <nav style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Link href="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Home</Link>
         <span>/</span>
         <Link href="/shop" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Shop</Link>
