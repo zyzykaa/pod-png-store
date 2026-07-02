@@ -31,18 +31,24 @@ export async function generateMetadata({ params }: Props) {
   if (!product) return {}
   const ogImage = product.preview_url || 'https://tiklife.shop/og-image.jpg'
   const productUrl = `https://tiklife.shop/products/${slug}`
-  const description = product.description
+
+  // Dùng SEO fields nếu có, fallback về title/description mặc định
+  const metaTitle = product.seo_title
+    ? `${product.seo_title} | Tiklife`
+    : `${product.title} | Tiklife`
+  const metaDescription = product.seo_description
+    || product.description
     || `Download ${product.title} — 300 DPI PNG, transparent background, commercial license included. Works on Printify, Printful & Etsy POD.`
 
   return {
-    title: `${product.title} | Tiklife`,
-    description,
+    title: metaTitle,
+    description: metaDescription,
     openGraph: {
       type: 'website',
       url: productUrl,
       siteName: 'Tiklife',
-      title: product.title,
-      description: `$${product.price} · 300 DPI PNG · Transparent Background · Commercial License · Instant Download`,
+      title: product.seo_title || product.title,
+      description: metaDescription,
       images: [{
         url: ogImage,
         width: 1000,
@@ -52,8 +58,8 @@ export async function generateMetadata({ params }: Props) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: product.title,
-      description: `$${product.price} · 300 DPI PNG design for POD sellers`,
+      title: product.seo_title || product.title,
+      description: metaDescription,
       images: [ogImage],
     },
     // Pinterest Product Rich Pin meta tags

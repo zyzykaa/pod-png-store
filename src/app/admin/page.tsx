@@ -9,6 +9,7 @@ interface Product {
   is_active: boolean; is_featured: boolean
   preview_url: string; download_count: number
   description: string | null; tags: string[]
+  seo_title: string | null; seo_description: string | null
 }
 
 interface FormState {
@@ -16,6 +17,7 @@ interface FormState {
   price: string; compare_price: string; category: string
   tags: string; file_info_dpi: string; file_info_size: string
   is_featured: boolean
+  seo_title: string; seo_description: string
 }
 
 const defaultForm: FormState = {
@@ -23,6 +25,7 @@ const defaultForm: FormState = {
   price: '2.99', compare_price: '9.99', category: 'western',
   tags: '', file_info_dpi: '300', file_info_size: '4500x5400px',
   is_featured: false,
+  seo_title: '', seo_description: '',
 }
 
 
@@ -140,7 +143,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [editForm, setEditForm] = useState({ title: '', price: '', compare_price: '', category: '', tags: '', description: '', is_featured: false, is_active: true })
+  const [editForm, setEditForm] = useState({ title: '', price: '', compare_price: '', category: '', tags: '', description: '', is_featured: false, is_active: true, seo_title: '', seo_description: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -440,6 +443,8 @@ export default function AdminPage() {
             includes: designFile?.name.endsWith('.zip') ? ['ZIP file with all variations'] : ['PNG transparent'],
           },
           is_featured: form.is_featured,
+          seo_title: form.seo_title || null,
+          seo_description: form.seo_description || null,
         }),
       })
       const result = await safeJson(res)
@@ -496,6 +501,8 @@ export default function AdminPage() {
       description: p.description || '',
       is_featured: p.is_featured,
       is_active: p.is_active,
+      seo_title: p.seo_title || '',
+      seo_description: p.seo_description || '',
     })
   }
 
@@ -515,6 +522,8 @@ export default function AdminPage() {
         description: editForm.description,
         is_featured: editForm.is_featured,
         is_active: editForm.is_active,
+        seo_title: editForm.seo_title || null,
+        seo_description: editForm.seo_description || null,
       }),
     })
     setEditSaving(false)
@@ -721,6 +730,31 @@ export default function AdminPage() {
                 <label style={label}>Mo ta</label>
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   rows={3} style={{ ...input, height: 'auto', resize: 'vertical' as const }} />
+              </div>
+              {/* SEO */}
+              <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                  SEO (tuỳ chọn — để trống = dùng tên sản phẩm)
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={label}>SEO Title <span style={{ color: '#aaa', fontWeight: 400 }}>(tối đa 60 ký tự)</span></label>
+                  <input value={form.seo_title} onChange={e => setForm(f => ({ ...f, seo_title: e.target.value }))}
+                    placeholder={`${form.title || 'Tên sản phẩm'} | Tiklife`}
+                    maxLength={60} style={input} />
+                  <div style={{ fontSize: 11, color: form.seo_title.length > 55 ? '#e94560' : '#aaa', textAlign: 'right', marginTop: 2 }}>
+                    {form.seo_title.length}/60
+                  </div>
+                </div>
+                <div>
+                  <label style={label}>SEO Description <span style={{ color: '#aaa', fontWeight: 400 }}>(tối đa 160 ký tự)</span></label>
+                  <textarea value={form.seo_description} onChange={e => setForm(f => ({ ...f, seo_description: e.target.value }))}
+                    rows={2} maxLength={160}
+                    placeholder="Download high-quality PNG design for sublimation, DTF printing..."
+                    style={{ ...input, height: 'auto', resize: 'vertical' as const }} />
+                  <div style={{ fontSize: 11, color: form.seo_description.length > 150 ? '#e94560' : '#aaa', textAlign: 'right', marginTop: 2 }}>
+                    {form.seo_description.length}/160
+                  </div>
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
@@ -950,6 +984,31 @@ export default function AdminPage() {
                 <div>
                   <label style={label}>Mô tả</label>
                   <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={4} style={{ ...input, height: 'auto', resize: 'vertical' as const }} />
+                </div>
+                {/* SEO */}
+                <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                    SEO (tuỳ chọn — để trống = dùng tên sản phẩm)
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={label}>SEO Title <span style={{ color: '#aaa', fontWeight: 400 }}>(tối đa 60 ký tự)</span></label>
+                    <input value={editForm.seo_title} onChange={e => setEditForm(f => ({ ...f, seo_title: e.target.value }))}
+                      placeholder={`${editForm.title} | Tiklife`}
+                      maxLength={60} style={input} />
+                    <div style={{ fontSize: 11, color: editForm.seo_title.length > 55 ? '#e94560' : '#aaa', textAlign: 'right', marginTop: 2 }}>
+                      {editForm.seo_title.length}/60
+                    </div>
+                  </div>
+                  <div>
+                    <label style={label}>SEO Description <span style={{ color: '#aaa', fontWeight: 400 }}>(tối đa 160 ký tự)</span></label>
+                    <textarea value={editForm.seo_description} onChange={e => setEditForm(f => ({ ...f, seo_description: e.target.value }))}
+                      rows={3} maxLength={160}
+                      placeholder="Download high-quality PNG design for sublimation, DTF printing..."
+                      style={{ ...input, height: 'auto', resize: 'vertical' as const }} />
+                    <div style={{ fontSize: 11, color: editForm.seo_description.length > 150 ? '#e94560' : '#aaa', textAlign: 'right', marginTop: 2 }}>
+                      {editForm.seo_description.length}/160
+                    </div>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: 24 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>

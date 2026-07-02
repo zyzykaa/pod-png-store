@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const {
       slug, title, description, price, compare_price,
       category, tags, file_path, preview_url, mockup_urls, file_info,
-      is_featured
+      is_featured, seo_title, seo_description
     } = body
 
     // Validate bắt buộc
@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
         file_info: file_info || {},
         is_featured: is_featured || false,
         is_active: true,
+        seo_title: seo_title || null,
+        seo_description: seo_description || null,
       })
       .select()
       .single()
