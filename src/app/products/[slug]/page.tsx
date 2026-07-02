@@ -139,10 +139,9 @@ export default async function ProductPage({ params }: Props) {
         {/* Right: Checkout + License + Pinterest */}
         <div>
           <h1 style={{ fontSize: 22, marginBottom: 16, lineHeight: 1.3 }}>{product.title}</h1>
-          <ProductCheckout product={product} />
 
           {/* License */}
-          <div style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #d1fae5', background: '#f0fdf4' }}>
+          <div style={{ marginBottom: 16, padding: 16, borderRadius: 12, border: '1px solid #d1fae5', background: '#f0fdf4' }}>
             <h3 style={{ fontSize: 14, marginBottom: 8, color: '#166534' }}>License included</h3>
             <div style={{ fontSize: 12, color: '#166534', lineHeight: 1.8 }}>
               ✓ Use on Printify, Printful, or your own products<br />
@@ -152,7 +151,7 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           {/* Pinterest share */}
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Share:</span>
             <a
               href={pinterestShareUrl}
@@ -171,6 +170,8 @@ export default async function ProductPage({ params }: Props) {
               Save to Pinterest
             </a>
           </div>
+
+          <ProductCheckout product={product} />
         </div>
       </div>
 
