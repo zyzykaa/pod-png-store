@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PayPalButtons, PayPalScriptProvider, FUNDING } from '@paypal/react-paypal-js'
 import { Product } from '@/types'
 import { useCart } from '@/hooks/useCart'
+import Link from 'next/link'
 
 interface Props {
   product: Product
@@ -15,7 +16,16 @@ export default function ProductCheckout({ product }: Props) {
   const [emailError, setEmailError] = useState('')
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'email' | 'paypal' | 'processing'>('email')
+  const [addedToCart, setAddedToCart] = useState(false)
   const router = useRouter()
+  const { addItem, items } = useCart()
+
+  const inCart = items.some(i => i.product.id === product.id)
+
+  function handleAddToCart() {
+    addItem(product)
+    setAddedToCart(true)
+  }
 
   const hasDiscount = product.compare_price && product.compare_price > product.price
 
@@ -140,6 +150,29 @@ export default function ProductCheckout({ product }: Props) {
             >
               Continue to Payment →
             </button>
+
+            {inCart || addedToCart ? (
+              <Link href="/checkout"
+                style={{
+                  display: 'block', textAlign: 'center', width: '100%', height: 46,
+                  lineHeight: '46px', borderRadius: 10, marginTop: 10,
+                  background: '#16a34a', color: 'white', fontWeight: 700,
+                  fontSize: 14, textDecoration: 'none',
+                }}>
+                ✓ In cart — Go to cart →
+              </Link>
+            ) : (
+              <button
+                onClick={handleAddToCart}
+                style={{
+                  width: '100%', height: 46, borderRadius: 10, marginTop: 10,
+                  background: 'white', border: '2px solid #e94560',
+                  color: '#e94560', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                }}
+              >
+                🛒 Add to Cart
+              </button>
+            )}
           </div>
         )}
 
