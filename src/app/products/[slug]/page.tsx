@@ -108,8 +108,6 @@ export default async function ProductPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Upsell: Frequently Bought Together */}
-          <RelatedProducts productId={product.id} category={product.category} currentPrice={product.price} />
         </div>
 
         {/* Right: Checkout */}
@@ -118,6 +116,9 @@ export default async function ProductPage({ params }: Props) {
           <ProductCheckout product={product} />
         </div>
       </div>
+
+      {/* Upsell: Frequently Bought Together — full width */}
+      <RelatedProducts productId={product.id} category={product.category} currentPrice={product.price} />
     </div>
   )
 }

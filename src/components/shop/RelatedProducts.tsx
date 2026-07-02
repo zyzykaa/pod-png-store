@@ -59,8 +59,8 @@ export default function RelatedProducts({ productId, category, currentPrice }: P
         Bundle and save up to 20% — select designs below
       </p>
 
-      {/* 1 hàng ngang */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${related.length}, 1fr)`, gap: 10, marginBottom: 16 }}>
+      {/* 1 hàng ngang — 4 cột */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 16 }}>
         {related.map(p => {
           const isChecked = selected.has(p.id)
           return (
