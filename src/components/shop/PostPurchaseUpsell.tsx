@@ -56,11 +56,6 @@ export default function PostPurchaseUpsell({ excludeIds }: Props) {
                   <span style={{ fontSize: 13, fontWeight: 800, color: '#e94560' }}>
                     ${p.price.toFixed(2)}
                   </span>
-                  {p.compare_price && p.compare_price > p.price && (
-                    <span style={{ fontSize: 11, textDecoration: 'line-through', color: 'rgba(255,255,255,0.4)' }}>
-                      ${p.compare_price.toFixed(2)}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>

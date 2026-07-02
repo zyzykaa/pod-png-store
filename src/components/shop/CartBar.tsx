@@ -5,17 +5,16 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 export default function CartBar() {
-  const { items, total, removeItem } = useCart()
+  const { items, subtotal, total, bundleDiscountRate, bundleDiscountAmount, removeItem } = useCart()
   const [mounted, setMounted] = useState(false)
   const [expanded, setExpanded] = useState(false)
 
   useEffect(() => setMounted(true), [])
   if (!mounted || items.length === 0) return null
 
-  const savings = items.reduce((sum, i) => {
-    const orig = i.product.compare_price ?? i.product.price
-    return sum + Math.max(0, orig - i.product.price)
-  }, 0)
+  const rate = bundleDiscountRate()
+  const discountAmt = bundleDiscountAmount()
+  const finalTotal = total()
 
   return (
     <div style={{
@@ -23,6 +22,18 @@ export default function CartBar() {
       background: 'white', borderTop: '1.5px solid #f0f0f0',
       boxShadow: '0 -4px 24px rgba(0,0,0,0.1)',
     }}>
+      {/* Bundle discount banner */}
+      {rate > 0 && (
+        <div style={{
+          background: 'linear-gradient(90deg, #16a34a, #15803d)',
+          color: 'white', textAlign: 'center',
+          fontSize: 12, fontWeight: 700, padding: '5px 0',
+          letterSpacing: '0.02em',
+        }}>
+          🎉 Bundle discount {(rate * 100).toFixed(0)}% off applied — you save ${discountAmt.toFixed(2)}!
+        </div>
+      )}
+
       {/* Expanded: item list */}
       {expanded && (
         <div style={{ maxHeight: 280, overflowY: 'auto', borderBottom: '1px solid #f0f0f0' }}>
@@ -38,17 +49,10 @@ export default function CartBar() {
                   <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {item.product.title}
                   </div>
-                  {item.product.compare_price && item.product.compare_price > item.product.price && (
-                    <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>
-                      Save ${(item.product.compare_price - item.product.price).toFixed(2)}
-                    </div>
-                  )}
+                  <div style={{ fontSize: 11, color: '#aaa' }}>{item.product.category}</div>
                 </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#e94560' }}>${item.product.price.toFixed(2)}</div>
-                  {item.product.compare_price && item.product.compare_price > item.product.price && (
-                    <div style={{ fontSize: 11, color: '#bbb', textDecoration: 'line-through' }}>${item.product.compare_price.toFixed(2)}</div>
-                  )}
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#e94560', flexShrink: 0 }}>
+                  ${item.product.price.toFixed(2)}
                 </div>
                 <button onClick={() => removeItem(item.product.id)}
                   style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 20, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>
@@ -56,6 +60,20 @@ export default function CartBar() {
                 </button>
               </div>
             ))}
+
+            {/* Discount summary in expanded view */}
+            {rate > 0 && (
+              <div style={{ padding: '10px 0 4px', borderTop: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888', marginBottom: 4 }}>
+                  <span>Subtotal</span>
+                  <span>${subtotal().toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
+                  <span>Bundle discount ({(rate * 100).toFixed(0)}% off)</span>
+                  <span>-${discountAmt.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -89,8 +107,8 @@ export default function CartBar() {
             <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', whiteSpace: 'nowrap' }}>
               {items.length} design{items.length > 1 ? 's' : ''} in cart
             </div>
-            <div style={{ fontSize: 11, color: savings > 0 ? '#16a34a' : '#aaa', fontWeight: savings > 0 ? 600 : 400 }}>
-              {savings > 0 ? `Saving $${savings.toFixed(2)} · ` : ''}{expanded ? 'Hide ▲' : 'View all ▼'}
+            <div style={{ fontSize: 11, color: rate > 0 ? '#16a34a' : '#aaa', fontWeight: rate > 0 ? 600 : 400 }}>
+              {rate > 0 ? `${(rate * 100).toFixed(0)}% bundle discount · ` : ''}{expanded ? 'Hide ▲' : 'View all ▼'}
             </div>
           </div>
         </button>
@@ -99,11 +117,11 @@ export default function CartBar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 21, fontWeight: 900, color: '#e94560', lineHeight: 1.1 }}>
-              ${total().toFixed(2)}
+              ${finalTotal.toFixed(2)}
             </div>
-            {savings > 0 && (
+            {rate > 0 && (
               <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>
-                Saved ${savings.toFixed(2)}
+                Saved ${discountAmt.toFixed(2)}
               </div>
             )}
           </div>

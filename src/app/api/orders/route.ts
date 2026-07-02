@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createPayPalOrder } from '@/lib/paypal'
 import { CreateOrderPayload } from '@/types'
+import { getBundleDiscountRate } from '@/lib/bundle'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,8 +28,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Product không hợp lệ' }, { status: 400 })
     }
 
-    // Tính tổng tiền từ DB (không từ client)
-    const amount = products.reduce((sum, p) => sum + Number(p.price), 0)
+    // Tính tổng tiền từ DB + áp dụng bundle discount
+    const subtotal = products.reduce((sum, p) => sum + Number(p.price), 0)
+    const discountRate = getBundleDiscountRate(products.length)
+    const amount = parseFloat((subtotal * (1 - discountRate)).toFixed(2))
 
     // Tạo order trong DB với status 'pending'
     const { data: order, error: oErr } = await supabaseAdmin
