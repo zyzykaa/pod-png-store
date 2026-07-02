@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUploadUrl(path)
+    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUploadUrl(path, { upsert: true })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return NextResponse.json({ signedUrl: data.signedUrl, token: data.token, path, bucket })
