@@ -85,7 +85,7 @@ function ShopContent() {
           Categories
         </div>
         {CATEGORIES.map(cat => (
-          <button key={cat.value}
+          <button key={cat.value} type="button"
             onClick={() => updateParams({ category: cat.value })}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -107,7 +107,7 @@ function ShopContent() {
           Sort By
         </div>
         {SORT_OPTIONS.map(opt => (
-          <button key={opt.value}
+          <button key={opt.value} type="button"
             onClick={() => updateParams({ sort: opt.value })}
             style={{
               display: 'block', width: '100%', padding: '9px 12px', borderRadius: 8,
@@ -127,7 +127,7 @@ function ShopContent() {
           Price Range
         </div>
         {PRICE_RANGES.map((range, idx) => (
-          <button key={idx}
+          <button key={idx} type="button"
             onClick={() => updateParams({ price: idx === 0 ? null : idx.toString() })}
             style={{
               display: 'block', width: '100%', padding: '9px 12px', borderRadius: 8,
