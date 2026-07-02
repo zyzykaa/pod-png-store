@@ -80,7 +80,7 @@ export default async function ProductPage({ params }: Props) {
   if (!product) notFound()
 
   const productUrl = `https://tiklife.shop/products/${slug}`
-  const pinTitle = (product.seo_title || product.title).slice(0, 50)
+  const pinTitle = (product.seo_title || product.title).slice(0, 100)
   const pinterestShareUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(productUrl)}&media=${encodeURIComponent(product.preview_url)}&description=${encodeURIComponent(`${pinTitle} | $${product.price} · 300 DPI PNG for POD. Commercial license included. #PODdesign #sublimation #DTF #printify #printful`)}`
 
   return (

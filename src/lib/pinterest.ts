@@ -24,7 +24,7 @@ export async function createPinterestPin(pin: PinInput) {
     },
     body: JSON.stringify({
       board_id: boardId,
-      title: pin.title.slice(0, 50),
+      title: pin.title.slice(0, 100),
       description: pin.description.slice(0, 500),
       link: pin.link,
       alt_text: (pin.altText || pin.title).slice(0, 500),
