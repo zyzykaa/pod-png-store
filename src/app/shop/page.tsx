@@ -47,7 +47,8 @@ function ShopContent() {
       if (v === null || v === '' || v === 'all' || v === '0') params.delete(k)
       else params.set(k, v)
     })
-    params.delete('page')
+    // Reset về trang 1 khi đổi filter/sort, nhưng không reset khi đang chuyển trang
+    if (!('page' in updates)) params.delete('page')
     router.push('/shop?' + params.toString())
   }
 
