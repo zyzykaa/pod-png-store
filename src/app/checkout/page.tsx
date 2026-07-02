@@ -79,28 +79,61 @@ export default function CheckoutPage() {
       <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 24 }}>Checkout</h1>
 
       {/* Cart items */}
-      <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f0f0f0', padding: 16, marginBottom: 20 }}>
-        {items.map(item => (
-          <div key={item.product.id} style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '10px 0', borderBottom: '1px solid #f5f5f5',
-          }}>
-            <img src={item.product.preview_url} alt={item.product.title}
-              style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 8, background: '#f8f8fa', flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.product.title}
+      <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f0f0f0', overflow: 'hidden', marginBottom: 20 }}>
+        <div style={{ padding: '4px 16px 0' }}>
+          {items.map((item, idx) => {
+            const hasSaving = item.product.compare_price && item.product.compare_price > item.product.price
+            return (
+              <div key={item.product.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0',
+                borderBottom: idx < items.length - 1 ? '1px solid #f5f5f5' : 'none',
+              }}>
+                <img src={item.product.preview_url} alt={item.product.title}
+                  style={{ width: 54, height: 54, objectFit: 'contain', borderRadius: 10, background: '#f8f8fa', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {item.product.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
+                    {item.product.category} · PNG instant download
+                  </div>
+                  {hasSaving && (
+                    <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 600, marginTop: 2 }}>
+                      You save ${(item.product.compare_price! - item.product.price).toFixed(2)}
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#e94560' }}>${item.product.price.toFixed(2)}</div>
+                  {hasSaving && (
+                    <div style={{ fontSize: 12, color: '#bbb', textDecoration: 'line-through' }}>${item.product.compare_price!.toFixed(2)}</div>
+                  )}
+                </div>
+                <button onClick={() => removeItem(item.product.id)}
+                  style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 20, padding: '0 4px', lineHeight: 1 }}>×</button>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.product.category}</div>
-            </div>
-            <span style={{ fontWeight: 700, fontSize: 15 }}>${item.product.price.toFixed(2)}</span>
-            <button onClick={() => removeItem(item.product.id)}
-              style={{ background: 'none', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: 18, padding: '0 4px' }}>×</button>
+            )
+          })}
+        </div>
+
+        {/* Summary */}
+        <div style={{ background: '#fafafa', borderTop: '1px solid #f0f0f0', padding: '14px 16px' }}>
+          {(() => {
+            const savings = items.reduce((sum, i) => {
+              const orig = i.product.compare_price ?? i.product.price
+              return sum + Math.max(0, orig - i.product.price)
+            }, 0)
+            return savings > 0 ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                <span style={{ color: '#16a34a', fontWeight: 600 }}>Total savings</span>
+                <span style={{ color: '#16a34a', fontWeight: 700 }}>-${savings.toFixed(2)}</span>
+              </div>
+            ) : null
+          })()}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: 18 }}>
+            <span>Total</span>
+            <span style={{ color: '#e94560' }}>${total().toFixed(2)}</span>
           </div>
-        ))}
-        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 14, fontWeight: 800, fontSize: 18 }}>
-          <span>Total</span>
-          <span style={{ color: '#e94560' }}>${total().toFixed(2)}</span>
         </div>
       </div>
 
