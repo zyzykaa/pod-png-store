@@ -451,6 +451,37 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(result.error)
 
       log('Thanh cong!')
+
+      // Auto-share to Pinterest
+      try {
+        log('📌 Dang chia se len Pinterest...')
+        const pinDesc = [
+          form.seo_description || form.description || '',
+          '#PODdesign #sublimation #DTF #printify #printful #PNG #instantdownload',
+        ].filter(Boolean).join('\n\n')
+
+        const pinRes = await fetch('/api/admin/pinterest-pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+          body: JSON.stringify({
+            title: form.seo_title || form.title,
+            description: pinDesc,
+            image_url: pUrl,
+            product_url: `${window.location.origin}/products/${form.slug}`,
+          }),
+        })
+        const pinData = await pinRes.json()
+        if (pinRes.ok) {
+          log(`✅ Da pin len Pinterest! ID: ${pinData.id}`)
+        } else if (pinData.error === 'not_configured') {
+          log('⚠️ Pinterest chua cau hinh (bo qua)')
+        } else {
+          log('⚠️ Pinterest loi: ' + pinData.error)
+        }
+      } catch {
+        log('⚠️ Khong the chia se Pinterest (bo qua)')
+      }
+
       setSuccessMsg(`"${form.title}" da them vao shop!`)
       setForm(defaultForm)
       setDesignFile(null)
