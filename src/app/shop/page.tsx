@@ -181,7 +181,7 @@ function ShopContent() {
       {activeFilters.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
           {activeFilters.map(f => (
-            <button key={f.key}
+            <button key={f.key} type="button"
               onClick={() => updateParams({ [f.key]: null })}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
@@ -191,7 +191,7 @@ function ShopContent() {
               {f.label} ×
             </button>
           ))}
-          <button onClick={() => router.push('/shop')} style={{
+          <button type="button" onClick={() => router.push('/shop')} style={{
             padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
             background: '#f5f5f5', color: '#888', border: '1px solid #e5e5e5', cursor: 'pointer',
           }}>
@@ -201,7 +201,7 @@ function ShopContent() {
       )}
 
       {/* Mobile filter toggle */}
-      <button onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
+      <button type="button" onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
         className="shop-mobile-filters"
         style={{
           display: 'none', width: '100%', height: 44, borderRadius: 10,
@@ -247,7 +247,7 @@ function ShopContent() {
               <div style={{ fontSize: 56, marginBottom: 16 }}>🔍</div>
               <h3 style={{ fontSize: 20, marginBottom: 8 }}>No designs found</h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: 20 }}>Try different keywords or filters</p>
-              <button onClick={() => router.push('/shop')} style={{
+              <button type="button" onClick={() => router.push('/shop')} style={{
                 padding: '10px 24px', borderRadius: 10, border: 'none',
                 background: '#e94560', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer',
               }}>Clear filters</button>
@@ -275,7 +275,7 @@ function ShopContent() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 48 }}>
-                  <button
+                  <button type="button"
                     disabled={page === 1}
                     onClick={() => updateParams({ page: (page - 1).toString() })}
                     style={{ width: 38, height: 38, borderRadius: 8, border: '1.5px solid #e5e5e5', background: 'white', cursor: page > 1 ? 'pointer' : 'not-allowed', opacity: page === 1 ? 0.4 : 1, fontSize: 16 }}>
@@ -284,7 +284,7 @@ function ShopContent() {
                   {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                     const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i
                     return (
-                      <button key={p}
+                      <button key={p} type="button"
                         onClick={() => updateParams({ page: p.toString() })}
                         style={{
                           width: 38, height: 38, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14,
@@ -297,7 +297,7 @@ function ShopContent() {
                       </button>
                     )
                   })}
-                  <button
+                  <button type="button"
                     disabled={page === totalPages}
                     onClick={() => updateParams({ page: (page + 1).toString() })}
                     style={{ width: 38, height: 38, borderRadius: 8, border: '1.5px solid #e5e5e5', background: 'white', cursor: page < totalPages ? 'pointer' : 'not-allowed', opacity: page === totalPages ? 0.4 : 1, fontSize: 16 }}>
