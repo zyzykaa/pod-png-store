@@ -121,7 +121,7 @@ export async function DELETE(request: NextRequest) {
 
   const { error } = await supabaseAdmin
     .from('products')
-    .update({ is_active: false })
+    .delete()
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -8,6 +8,7 @@ interface Product {
   compare_price: number | null; category: string
   is_active: boolean; is_featured: boolean
   preview_url: string; download_count: number
+  description: string | null; tags: string[]
 }
 
 interface FormState {
@@ -138,6 +139,10 @@ export default function AdminPage() {
   // Products state
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [editForm, setEditForm] = useState({ title: '', price: '', compare_price: '', category: '', tags: '', description: '', is_featured: false, is_active: true })
+  const [editSaving, setEditSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const designRef = useRef<HTMLInputElement>(null)
   const previewBoxRef = useRef<HTMLDivElement>(null)
@@ -477,6 +482,52 @@ export default function AdminPage() {
       headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
       body: JSON.stringify({ id: p.id, is_featured: !p.is_featured }),
     })
+    loadProducts()
+  }
+
+  function openEdit(p: Product) {
+    setEditingProduct(p)
+    setEditForm({
+      title: p.title,
+      price: String(p.price),
+      compare_price: p.compare_price ? String(p.compare_price) : '',
+      category: p.category,
+      tags: (p.tags || []).join(', '),
+      description: p.description || '',
+      is_featured: p.is_featured,
+      is_active: p.is_active,
+    })
+  }
+
+  async function saveEdit() {
+    if (!editingProduct) return
+    setEditSaving(true)
+    await fetch('/api/admin/products', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({
+        id: editingProduct.id,
+        title: editForm.title,
+        price: parseFloat(editForm.price),
+        compare_price: editForm.compare_price ? parseFloat(editForm.compare_price) : null,
+        category: editForm.category,
+        tags: editForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+        description: editForm.description,
+        is_featured: editForm.is_featured,
+        is_active: editForm.is_active,
+      }),
+    })
+    setEditSaving(false)
+    setEditingProduct(null)
+    loadProducts()
+  }
+
+  async function deleteProduct(id: string) {
+    await fetch(`/api/admin/products?id=${id}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': adminKey },
+    })
+    setDeletingId(null)
     loadProducts()
   }
 
@@ -848,12 +899,97 @@ export default function AdminPage() {
                       <button onClick={() => toggleActive(p)} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: p.is_active ? '#fee2e2' : '#d1fae5', color: p.is_active ? '#991b1b' : '#065f46', cursor: 'pointer', fontSize: 12 }}>
                         {p.is_active ? 'An' : 'Hien'}
                       </button>
+                      <button onClick={() => openEdit(p)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #3b82f6', background: 'white', color: '#3b82f6', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                        Sửa
+                      </button>
+                      <button onClick={() => setDeletingId(p.id)} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#fee2e2', color: '#991b1b', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                        Xóa
+                      </button>
                       <a href={`/products/${p.slug}`} target="_blank" style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e5e5', background: 'white', fontSize: 12, textDecoration: 'none', color: '#333' }}>Xem</a>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {editingProduct && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 32, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700 }}>Chỉnh sửa sản phẩm</h2>
+                <button onClick={() => setEditingProduct(null)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#888', lineHeight: 1 }}>×</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label style={label}>Tên sản phẩm</label>
+                  <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} style={input} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={label}>Giá bán ($)</label>
+                    <input value={editForm.price} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} type="number" step="0.01" style={input} />
+                  </div>
+                  <div>
+                    <label style={label}>Giá gốc ($)</label>
+                    <input value={editForm.compare_price} onChange={e => setEditForm(f => ({ ...f, compare_price: e.target.value }))} type="number" step="0.01" style={input} />
+                  </div>
+                </div>
+                <div>
+                  <label style={label}>Category</label>
+                  <select value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} style={{ ...input, background: 'white' }}>
+                    {CATEGORIES.slice(1).map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={label}>Tags (cách nhau bằng dấu phẩy)</label>
+                  <input value={editForm.tags} onChange={e => setEditForm(f => ({ ...f, tags: e.target.value }))} style={input} />
+                </div>
+                <div>
+                  <label style={label}>Mô tả</label>
+                  <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={4} style={{ ...input, height: 'auto', resize: 'vertical' as const }} />
+                </div>
+                <div style={{ display: 'flex', gap: 24 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                    <input type="checkbox" checked={editForm.is_featured} onChange={e => setEditForm(f => ({ ...f, is_featured: e.target.checked }))} />
+                    Featured
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                    <input type="checkbox" checked={editForm.is_active} onChange={e => setEditForm(f => ({ ...f, is_active: e.target.checked }))} />
+                    Hiển thị (Active)
+                  </label>
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                  <button onClick={() => setEditingProduct(null)} style={{ flex: 1, height: 44, background: '#f5f5f5', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#555' }}>
+                    Hủy
+                  </button>
+                  <button onClick={saveEdit} disabled={editSaving} style={{ flex: 2, height: 44, background: editSaving ? '#ccc' : 'var(--brand-accent)', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: editSaving ? 'not-allowed' : 'pointer' }}>
+                    {editSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirm Dialog */}
+        {deletingId && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 32, width: '100%', maxWidth: 400, textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Xóa sản phẩm?</h3>
+              <p style={{ color: '#888', fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>Hành động này không thể hoàn tác. Sản phẩm sẽ bị xóa hoàn toàn khỏi database.</p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setDeletingId(null)} style={{ flex: 1, height: 44, background: '#f5f5f5', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#555' }}>
+                  Hủy
+                </button>
+                <button onClick={() => deleteProduct(deletingId)} style={{ flex: 1, height: 44, background: '#dc2626', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                  Xóa
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
