@@ -30,15 +30,41 @@ export async function generateMetadata({ params }: Props) {
   const product = await getProduct(slug)
   if (!product) return {}
   const ogImage = product.preview_url || 'https://tiklife.shop/og-image.jpg'
+  const productUrl = `https://tiklife.shop/products/${slug}`
+  const description = product.description
+    || `Download ${product.title} — 300 DPI PNG, transparent background, commercial license included. Works on Printify, Printful & Etsy POD.`
+
   return {
     title: `${product.title} | Tiklife`,
-    description: product.description || `Download ${product.title} — 300 DPI PNG, commercial license included.`,
+    description,
     openGraph: {
+      type: 'website',
+      url: productUrl,
+      siteName: 'Tiklife',
       title: product.title,
-      description: `$${product.price} · 300 DPI · Commercial License · Instant Download`,
-      images: [{ url: ogImage, width: 1200, height: 1200, alt: product.title }],
+      description: `$${product.price} · 300 DPI PNG · Transparent Background · Commercial License · Instant Download`,
+      images: [{
+        url: ogImage,
+        width: 1000,
+        height: 1000,
+        alt: product.title,
+      }],
     },
-    twitter: { card: 'summary_large_image', title: product.title, images: [ogImage] },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.title,
+      description: `$${product.price} · 300 DPI PNG design for POD sellers`,
+      images: [ogImage],
+    },
+    // Pinterest Product Rich Pin meta tags
+    other: {
+      'og:url': productUrl,
+      'product:price:amount': product.price.toFixed(2),
+      'product:price:currency': 'USD',
+      'og:availability': 'in stock',
+      'og:condition': 'new',
+      'og:brand': 'Tiklife',
+    },
   }
 }
 
@@ -46,6 +72,9 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params
   const product = await getProduct(slug)
   if (!product) notFound()
+
+  const productUrl = `https://tiklife.shop/products/${slug}`
+  const pinterestShareUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(productUrl)}&media=${encodeURIComponent(product.preview_url)}&description=${encodeURIComponent(`${product.title} — $${product.price} | 300 DPI PNG design for POD sellers. Commercial license included. Instant download. #PODdesign #sublimation #DTF #printify #printful`)}`
 
   return (
     <div className="container" style={{ paddingTop: 32, paddingBottom: 64 }}>
@@ -63,7 +92,7 @@ export default async function ProductPage({ params }: Props) {
       </nav>
 
       <div className='product-layout' style={{ display: 'grid', gridTemplateColumns: '55% 45%', gap: 48, alignItems: 'start' }}>
-        {/* Left: Images - client component để dùng event handlers */}
+        {/* Left: Images */}
         <div>
           <ProductImage previewUrl={product.preview_url} title={product.title} />
 
@@ -108,6 +137,27 @@ export default async function ProductPage({ params }: Props) {
             </div>
           </div>
 
+          {/* Pinterest share */}
+          <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>Share:</span>
+            <a
+              href={pinterestShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                height: 38, padding: '0 16px', borderRadius: 9,
+                background: '#E60023', color: 'white',
+                fontWeight: 700, fontSize: 13, textDecoration: 'none',
+              }}
+            >
+              {/* Pinterest P logo */}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
+              </svg>
+              Save to Pinterest
+            </a>
+          </div>
         </div>
 
         {/* Right: Checkout */}
